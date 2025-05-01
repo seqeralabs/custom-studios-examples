@@ -35,10 +35,15 @@ cr.seqera.io/scidev/shiny-simple-example
 
 2. Run the container:
    ```bash
-   docker run -p 3838:3838 shiny-simple-example
+   docker run --rm \
+     --platform=linux/amd64 \
+     -p 3000:3000 \
+     -e CONNECT_TOOL_PORT=3000 \
+     -e CONNECT_RUN_STANDALONE_TOOL=true \
+     shiny-simple-example
    ```
 
-3. Access the app at `http://localhost:3838`
+3. Access the app at `http://localhost:3000`
 
 ## Usage
 
