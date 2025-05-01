@@ -19,6 +19,13 @@ This is a minimal example demonstrating basic Shiny plotting capabilities using 
 - `app_plot_demo.R`: The Shiny application code
 - `example_data.csv`: Sample data file for testing
 
+## Container
+
+The container is available at:
+```
+cr.seqera.io/scidev/shiny-simple-example
+```
+
 ## Running the Example
 
 1. Build the container:
