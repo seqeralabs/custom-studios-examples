@@ -28,6 +28,8 @@ cr.seqera.io/scidev/shiny-simple-example
 
 ## Running the Example
 
+### Local Testing
+
 1. Build the container:
    ```bash
    docker build -t shiny-simple-example .
@@ -35,15 +37,26 @@ cr.seqera.io/scidev/shiny-simple-example
 
 2. Run the container:
    ```bash
-   docker run --rm \
-     --platform=linux/amd64 \
-     -p 3000:3000 \
-     -e CONNECT_TOOL_PORT=3000 \
-     -e CONNECT_RUN_STANDALONE_TOOL=true \
-     shiny-simple-example
+   docker run --rm --platform=linux/amd64 -p 3000:3000 --entrypoint "" shiny-simple-example
    ```
 
+   Note: We override the entrypoint with `--entrypoint ""` because the container is configured to use Seqera's connect-client as its entrypoint. This works in Seqera Studios but fails locally. By clearing the entrypoint, we let the container run its default CMD which starts the Shiny app directly.
+
 3. Access the app at `http://localhost:3000`
+
+### Using in Seqera Studios
+
+To use this container in Seqera Studios:
+
+1. Push the container to your container registry
+2. In Seqera Platform Cloud:
+   - Go to Studios tab
+   - Click "Add Studio"
+   - In the "General config" section:
+     - Select "Prebuilt container image" as the container template
+     - Enter your container image URI
+   - Configure other settings as needed (compute resources, data mounts, etc.)
+   - Click "Add and start" to create and launch the Studio
 
 ## Usage
 
