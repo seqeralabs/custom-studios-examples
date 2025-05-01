@@ -18,11 +18,17 @@ This is a simple Shiny example that demonstrates how to create a Shiny app that 
 
 ## Local Testing
 
-To test the app locally:
+To test the app locally for testing purposes you need to override the entrypoint:
 
 ```bash
 docker build --platform=linux/amd64 -t shiny-simple-example .
-docker run --rm --platform=linux/amd64 -p 3000:3000 shiny-simple-example
+docker run -p 3000:3000 --entrypoint micromamba shiny-simple-example run -n shiny R -e "shiny::runApp('/app/app_plot_demo.R', host='0.0.0.0', port=3000)"
+```
+
+To point at a specific data file rather than the input example, make it available at /workspace/data/shiny-inputs/data.csv in the container. For example if data.csv was in the current directory:
+
+```bash
+docker run -p 3000:3000 --entrypoint micromamba -v $(pwd)/../data/shiny-inputs:/workspace/data/shiny-inputs shiny-simple-example run -n shiny R -e "shiny::runApp('/app/app_plot_demo.R', host='0.0.0.0', port=3000)"
 ```
 
 The app will be available at http://localhost:3000
@@ -30,6 +36,8 @@ The app will be available at http://localhost:3000
 ## Usage in Seqera Studios
 
 To use this app in Seqera Studios:
+
+Create a data link called 'shiny-inputs' and place your input file called 'data.csv' there.
 
 1. Select the **Studios** tab in your workspace
 2. Click **Add Studio**
@@ -43,17 +51,6 @@ To use this app in Seqera Studios:
    - Mount any required data using the **Mount data** option
 5. Review the configuration in the **Summary** section
 6. Click **Add and start** to create and launch the Studio
-
-The app will automatically detect the Studios environment and use the appropriate port through the `connect-client`.
-
-## How It Works
-
-The `run.sh` script automatically detects the execution environment:
-
-- In Seqera Studios: Uses `connect-client` with the appropriate port from `CONNECT_TOOL_PORT`
-- Local testing: Runs directly with the default port 3000
-
-This dual-mode operation is handled by the entrypoint script, which checks for the presence of the `CONNECT_TOOL_PORT` environment variable to determine the execution context.
 
 ## Notes
 

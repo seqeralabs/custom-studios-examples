@@ -27,10 +27,12 @@ RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest \
   && mkdir -p /opt/conda \
   && chmod -R 777 /opt/conda
 
-# Create a conda env with shiny
+# Create a conda env with shiny and additional R packages
 RUN rm -rf /opt/conda/pkgs/*.lock && \
     micromamba create -y -n shiny -c conda-forge \
     r-shiny \
+    r-ggplot2 \
+    r-dplyr \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
 
@@ -43,10 +45,17 @@ RUN /usr/bin/connect-client --install
 # Set a working directory for your app
 WORKDIR /app
 
-# Copy your Shiny code and run script
+# Copy your Shiny code and data
 COPY app_plot_demo.R /app/
-COPY run.sh /app/
-RUN chmod +x /app/run.sh
+COPY data.csv /app/
 
-# Use the run script as the entrypoint
-ENTRYPOINT ["/app/run.sh"] 
+# ---------------------------------------------------------------
+# 3) Launch with connect-client --entrypoint (for Tower)
+# ---------------------------------------------------------------
+ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
+
+# ---------------------------------------------------------------
+# 4) Command: Run your Shiny app via micromamba
+# ---------------------------------------------------------------
+# The port is set by CONNECT_TOOL_PORT environment variable
+CMD ["micromamba", "run", "-n", "shiny", "R", "-e", "shiny::runApp('/app/app_plot_demo.R', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"] 
