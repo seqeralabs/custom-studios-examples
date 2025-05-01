@@ -43,16 +43,10 @@ RUN /usr/bin/connect-client --install
 # Set a working directory for your app
 WORKDIR /app
 
-# Copy your Shiny code
+# Copy your Shiny code and run script
 COPY app_plot_demo.R /app/
+COPY run.sh /app/
+RUN chmod +x /app/run.sh
 
-# ---------------------------------------------------------------
-# 3) Launch with connect-client --entrypoint (for Tower)
-# ---------------------------------------------------------------
-ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
-
-# ---------------------------------------------------------------
-# 4) Command: Run your Shiny app via micromamba
-# ---------------------------------------------------------------
-# The port is set by CONNECT_TOOL_PORT environment variable
-CMD ["micromamba", "run", "-n", "shiny", "R", "-e", "shiny::runApp('/app/app_plot_demo.R', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"] 
+# Use the run script as the entrypoint
+ENTRYPOINT ["/app/run.sh"] 

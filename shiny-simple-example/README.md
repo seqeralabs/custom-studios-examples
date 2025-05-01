@@ -18,6 +18,7 @@ This is a minimal example demonstrating basic Shiny plotting capabilities using 
 - `Dockerfile`: Container configuration using micromamba and R-Shiny
 - `app_plot_demo.R`: The Shiny application code
 - `example_data.csv`: Sample data file for testing
+- `run.sh`: Script that handles both local testing and Seqera Studios deployment
 
 ## Container
 
@@ -37,10 +38,10 @@ cr.seqera.io/scidev/shiny-simple-example
 
 2. Run the container:
    ```bash
-   docker run --rm --platform=linux/amd64 -p 3000:3000 --entrypoint "" shiny-simple-example
+   docker run --rm --platform=linux/amd64 -p 3000:3000 shiny-simple-example
    ```
 
-   Note: We override the entrypoint with `--entrypoint ""` because the container is configured to use Seqera's connect-client as its entrypoint. This works in Seqera Studios but fails locally. By clearing the entrypoint, we let the container run its default CMD which starts the Shiny app directly.
+   The container automatically detects whether it's running locally or in Seqera Studios and configures itself accordingly.
 
 3. Access the app at `http://localhost:3000`
 
