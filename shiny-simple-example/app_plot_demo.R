@@ -100,7 +100,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     # Read data
     data <- reactive({
-        file_path <- '/workspace/data/shiny-inputs/input.csv'
+        file_path <- '/workspace/data/shiny-inputs/data.csv'
         if (file.exists(file_path)) {
             read.csv(file_path)
         } else {
@@ -114,7 +114,7 @@ server <- function(input, output, session) {
     
     # Data source message
     output$data_source <- renderText({
-        file_path <- '/workspace/data/shiny-inputs/input.csv'
+        file_path <- '/workspace/data/shiny-inputs/data.csv'
         if (file.exists(file_path)) {
             "Using external data file"
         } else {
