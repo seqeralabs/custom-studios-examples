@@ -1,13 +1,12 @@
 # Stage 1: Get the Seqera Connect client
 FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
 
-# Final image: Start from a community container
+# Final image: Start from an arbitrary container
 FROM community.wave.seqera.io/library/samtools:1.21--0d76da7c3cf7751c
 
 # Install extra dependencies and tools
 RUN apt-get update && apt-get install -y \
     wget \
-    samtools \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
