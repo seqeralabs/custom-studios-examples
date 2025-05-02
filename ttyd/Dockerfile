@@ -23,4 +23,4 @@ RUN /usr/bin/connect-client --install
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
 # Default command to run TTYD with writable mode
-CMD ["/usr/local/bin/ttyd", "-W", "-p", "$CONNECT_TOOL_PORT", "bash"]
+CMD ["/usr/bin/bash", "-c", "ttyd -W -p $CONNECT_TOOL_PORT bash"]
