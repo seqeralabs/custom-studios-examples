@@ -2,6 +2,8 @@
 
 This is a simple Shiny example that demonstrates how to create a Shiny app that can be run both locally and in Seqera Studios.
 
+![Screenshot of the Shiny app](screenshot.png)
+
 ## Features
 
 - Simple scatter plot visualization
