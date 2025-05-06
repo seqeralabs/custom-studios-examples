@@ -8,7 +8,6 @@ This is a simple Shiny example that demonstrates how to create a Shiny app that 
 
 - Simple scatter plot visualization
 - Interactive data filtering
-- Automatic environment detection for local vs Studios deployment
 - Compatible with both local Docker testing and Seqera Studios
 
 ## Files
