@@ -24,6 +24,9 @@ This container is designed for use as a [custom Studio environment](https://docs
 - SQL built-in, script execution, and app sharing
 - Compatible with Seqera Studios custom environments
 
+> [!WARNING]
+> Marimo does not support opening the same notebook in multiple tabs to avoid state conflicts. They have recently added a feature to allow this, but it has not been tested in Seqera Studios.
+
 ## Prerequisites
 
 - [Docker](https://www.docker.com/) installed
