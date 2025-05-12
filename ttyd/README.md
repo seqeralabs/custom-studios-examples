@@ -1,6 +1,6 @@
 # TTYD Terminal Example
 
-This example contains a Dockerfile that builds a container image for running an interactive terminal session in Seqera Studios using TTYD.
+This example contains a Dockerfile that builds a container image for running an interactive terminal session in Seqera Studios using TTYD. A commodity image from Seqera containers providing Samtools is used as the base, illustrating the possibilities of Studios as a environment to run arbitrary images.
 
 ![Screenshot of TTYD terminal](screenshot.png)
 
@@ -15,7 +15,6 @@ This example contains a Dockerfile that builds a container image for running an 
 ## Files
 
 - `Dockerfile`: Container definition using multi-stage build
-- `screenshot.png`: Screenshot of the terminal interface (to be added)
 
 ## Local Testing
 
