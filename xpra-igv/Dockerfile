@@ -1,7 +1,8 @@
 # Add a default Connect client version. Can be overridden by build arg
 ARG CONNECT_CLIENT_VERSION="0.8.1-snapshot"
 
-FROM cr.seqera.io/public/connect-client:${CONNECT_CLIENT_VERSION} AS connect
+# Path to the public connect-client
+FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 FROM mambaorg/micromamba:1.5.10-noble AS micromamba
 
@@ -59,7 +60,7 @@ RUN /usr/local/bin/_dockerfile_initialize_user_accounts.sh && \
 SHELL ["/usr/local/bin/_dockerfile_shell.sh"]
 
 
-#### Install Xpra ####
+# Install Xpra
 RUN wget -O "/usr/share/keyrings/xpra.asc" https://xpra.org/xpra.asc && \
     wget -O "/etc/apt/sources.list.d/xpra.sources"  https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/noble/xpra.sources
 
@@ -81,7 +82,7 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 
-#### Install IGV ####
+# Install IGV
 ARG igv_version=IGV_Linux_2.19.4
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
