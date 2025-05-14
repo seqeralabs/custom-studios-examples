@@ -12,7 +12,6 @@ desktop Java application as a Studio environment in Seqera Platform.
 - [Building the Container](#building-the-container)
 - [Using in Seqera Studios](#using-in-seqera-studios)
 - [Customizing the Environment](#customizing-the-environment)
-- [Notes](#notes)
 - [References](#references)
 
 ## Overview
