@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --branch load_data_from_file https://github.com/FloWuenne/example-streamlit.git .
+# Remove any existing directory and clone fresh
+RUN rm -rf /app/* && git clone https://github.com/MultiQC/example-streamlit .
 
 RUN pip3 install -r requirements.txt
 
@@ -34,8 +35,10 @@ RUN /usr/bin/connect-client --install
 # ---------------------------------------------------------------
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list
-RUN apt update && apt install -y btrfs-progs=6.12-1~bpo12+1
+# Add backports repository and install specific btrfs-progs version
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y btrfs-progs=6.14-1~bpo12+1
 
 # ---------------------------------------------------------------
 # 4) Command: Run CellxGene with a dataset from a data link defined via DATASET_NAME
