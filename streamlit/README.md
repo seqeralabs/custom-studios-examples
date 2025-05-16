@@ -2,6 +2,8 @@
 
 This example contains a Dockerfile that builds a container image for running a Streamlit application with Seqera Studios.
 
+![Screenshot of the Streamlit app](screenshot.png)
+
 ## Features
 
 - Streamlit-based MultiQC visualization platform
