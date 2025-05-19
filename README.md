@@ -4,10 +4,11 @@ This repository contains example Dockerfiles and configurations for custom Seqer
 
 ## Available Examples
 
-- [Marimo Studio Environment](marimo/README.md) - A reactive Python notebook environment
-- [CellxGene Example](cellxgene/README.md) - Interactive single-cell data visualization
-- [Streamlit Example](streamlit/README.md) - MultiQC visualization using Streamlit
-- [Shiny Example](shiny-simple-example/README.md) - Interactive data visualization with R Shiny
+- [Marimo](marimo/README.md) - A reactive Python notebook environment
+- [CellxGene](cellxgene/README.md) - Interactive single-cell data visualization
+- [Streamlit](streamlit/README.md) - MultiQC visualization using Streamlit
+- [Shiny](shiny-simple-example/README.md) - Interactive data visualization with R Shiny
+- [TTYD](ttyd/README.md) - Interactive web-based terminal with bioinformatics tools
 
 ## Prerequisites
 
