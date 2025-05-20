@@ -14,7 +14,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Add backports repository and install specific btrfs-progs version
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y btrfs-progs=6.12-1~bpo12+1
+    apt-get install -y btrfs-progs=6.14-1~bpo12+1
 
 # Update packages and install minimal tools
 RUN apt-get update && apt-get install -y \
