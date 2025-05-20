@@ -1,6 +1,5 @@
 name: Build and Push Docker Images
 
-# Test commit to trigger workflow
 on:
   push:
     branches: [ github_actions_docker ]
