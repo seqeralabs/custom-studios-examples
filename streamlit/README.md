@@ -4,6 +4,15 @@ This example contains a Dockerfile that builds a container image for running a S
 
 ![Screenshot of the Streamlit app](screenshot.png)
 
+## Docker Image
+
+The container image is available at:
+```
+ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
+```
+
+For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/streamlit:v1.0.0`).
+
 ## Features
 
 - Streamlit-based MultiQC visualization platform
