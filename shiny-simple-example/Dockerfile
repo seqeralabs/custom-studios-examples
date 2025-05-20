@@ -6,7 +6,7 @@ FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
 # ---------------------------------------------------------------
 # 2) Final stage: Ubuntu + micromamba + r-shiny
 # ---------------------------------------------------------------
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Just for the automation at Seqera
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
@@ -18,6 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --yes && apt-get install --yes --no-install-recommends \
     wget \
     ca-certificates \
+    bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------
