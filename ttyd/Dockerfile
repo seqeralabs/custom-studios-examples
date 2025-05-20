@@ -4,6 +4,9 @@ FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
 # Final image: Start from an arbitrary container
 FROM community.wave.seqera.io/library/samtools:1.21--0d76da7c3cf7751c
 
+# Just for the automation at Seqera
+LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
+
 # Set environment variables to prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm

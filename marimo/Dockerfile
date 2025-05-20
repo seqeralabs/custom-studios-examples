@@ -3,6 +3,9 @@ FROM public.cr.seqera.io/platform/connect-client:0.7 AS connect
 # Choose a python version that you know works with your application
 FROM python:3.11-slim
 
+# Just for the automation at Seqera
+LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
+
 # Install uv for fast package management
 COPY --from=ghcr.io/astral-sh/uv:0.4.20 /uv /bin/uv
 

@@ -8,6 +8,9 @@ FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
 # ---------------------------------------------------------------
 FROM python:3.10-slim
 
+# Just for the automation at Seqera
+LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
+
 # Avoid interactive prompts during package install
 ENV DEBIAN_FRONTEND=noninteractive
 
