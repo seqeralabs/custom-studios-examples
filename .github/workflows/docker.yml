@@ -15,7 +15,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}
 
 jobs:
   build-and-push:
@@ -54,7 +53,7 @@ jobs:
         with:
           context: ${{ matrix.container.path }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/custom-studios-examples/${{ matrix.container.name }}:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.container.name }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.description=Custom Studios Example Container for ${{ matrix.container.name }}
