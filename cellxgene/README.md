@@ -4,6 +4,15 @@ This example contains a Dockerfile that builds a container image for running Cel
 
 ![Screenshot of CellxGene](screenshot.png)
 
+## Docker Image
+
+The container image is available at:
+```
+ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
+```
+
+For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/cellxgene:v1.0.0`).
+
 ## Features
 
 - CellxGene 1.3.0 visualization platform
