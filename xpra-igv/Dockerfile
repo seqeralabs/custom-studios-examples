@@ -47,6 +47,7 @@ RUN apt-get update --yes && apt-get install --yes --no-install-recommends \
     dbus-x11 \
     xvfb \
     terminator && \
+    thunar && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=micromamba "$MAMBA_EXE" "$MAMBA_EXE"
