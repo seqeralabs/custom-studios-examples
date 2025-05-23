@@ -33,7 +33,8 @@ exec xpra start \
 --desktop-scaling=auto \
 --windows=yes \
 --daemon=no \
---start="terminator" \
+--start-child="terminator" \
+--start-child="igv" \
 --idle-timeout=21600 \
 --mousewheel=on \
 --opengl=yes \
