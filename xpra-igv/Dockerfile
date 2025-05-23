@@ -1,5 +1,5 @@
 # Add a default Connect client version. Can be overridden by build arg
-ARG CONNECT_CLIENT_VERSION="0.8.1-snapshot"
+ARG CONNECT_CLIENT_VERSION="0.8"
 
 # Path to the public connect-client
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
@@ -108,8 +108,6 @@ RUN ln -s /workspace /root
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 # Install connect dependencies
 RUN /usr/bin/connect-client --install
-# Optionally set tool identifier for metrics tracking purposes
-RUN /usr/bin/connect-client --setToolIdentifier custom
 
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 CMD ["bash",  "/bin/entry.sh"]
