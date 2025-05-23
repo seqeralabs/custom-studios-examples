@@ -46,7 +46,7 @@ RUN apt-get update --yes && apt-get install --yes --no-install-recommends \
     x11-xkb-utils \
     dbus-x11 \
     xvfb \
-    terminator && \
+    terminator \
     thunar && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -83,10 +83,10 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 
-# Create a conda env with IGV
+# Create a conda env with the most recent compatible IGV
 RUN rm -rf /opt/conda/pkgs/*.lock && \
     micromamba create -y -n igv -c bioconda \
-    igv=2.19.3 \
+    igv \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
 
