@@ -82,28 +82,23 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 
-# Install IGV
-ARG igv_version=IGV_Linux_2.19.4
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
-    default-jre \
-    unzip \
-    lsof \
-    glib-networking-common && \
-    mkdir -p /igv && \
-    cd /igv && \
-    wget "https://data.broadinstitute.org/igv/projects/downloads/2.19/${igv_version}_WithJava.zip" && \
-    unzip ${igv_version}_WithJava.zip && \
-    cd ${igv_version} && \
-    cd /usr/bin && \
-    ln -s /igv/${igv_version}/igv.sh ./igv
+# Create a conda env with IGV
+RUN rm -rf /opt/conda/pkgs/*.lock && \
+    micromamba create -y -n igv -c bioconda \
+    igv=2.19.3 \
+    && micromamba clean --all --yes \
+    && rm -rf /opt/conda/pkgs/*.lock
+
+# Copy the menu item contents, add to the env, make it executable
+COPY ./menu_items.txt /usr/share/applications/.desktop
+RUN chmod +x /usr/share/applications/.desktop
 
 # Copy the welcome message into the container and append it to the .bashrc
-COPY ./docker/xpra_6.2.0-r2-1-igv_2.19.4/welcome_ASCII.txt /root/.welcome_ASCII.txt
+COPY ./welcome_ASCII.txt /root/.welcome_ASCII.txt
 RUN echo "cat /root/.welcome_ASCII.txt" >> /root/.bashrc
-COPY ./docker/xpra_6.2.0-r2-1-igv_2.19.4/entry.sh /bin
+COPY ./entry.sh /bin
 
-COPY ./docker/xpra_6.2.0-r2-1-igv_2.19.4/seqera-wallpaper.png /usr/share/xpra/www/background.png
+COPY ./seqera-wallpaper.png /usr/share/xpra/www/background.png
 
 WORKDIR /workspace
 RUN ln -s /workspace /root
