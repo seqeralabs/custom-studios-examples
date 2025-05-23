@@ -85,7 +85,7 @@ ENV LANG=en_US.UTF-8
 
 # Create a conda env with the most recent compatible IGV
 RUN rm -rf /opt/conda/pkgs/*.lock && \
-    micromamba create -y -n igv -c bioconda \
+    micromamba create -y -n igv -c bioconda -c conda-forge \
     igv \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
