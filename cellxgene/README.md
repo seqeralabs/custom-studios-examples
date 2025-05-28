@@ -8,6 +8,7 @@ This example provides a custom container image for running [CellxGene](https://c
 - [Features](#features)
 - [Files](#files)
 - [Prerequisites](#prerequisites)
+- [Building the Container](#building-the-container)
 - [Local Testing](#local-testing)
 - [Using in Seqera Studios](#using-in-seqera-studios)
 - [Notes](#notes)
@@ -51,12 +52,22 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 Additional requirements specific to this example:
 - .h5ad format single-cell datasets
 
-## Local Testing
+## Building the Container
 
-To test the app locally:
+> [!IMPORTANT]
+> You must provide the `CONNECT_CLIENT_VERSION` build argument when building the container.
+
+To build the container locally:
 
 ```bash
-docker build --platform=linux/amd64 -t cellxgene-example .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.8 -t cellxgene-example .
+```
+
+## Local Testing
+
+To test the app locally, you need to override the entrypoint:
+
+```bash
 docker run -p 3000:3000 --entrypoint /usr/local/bin/cellxgene cellxgene-example launch \
     --host 0.0.0.0 \
     --port 3000 \
@@ -66,8 +77,7 @@ docker run -p 3000:3000 --entrypoint /usr/local/bin/cellxgene cellxgene-example 
     /path/to/your/dataset.h5ad
 ```
 
-To use a specific data file, make it available at /workspace/data/cellxgene_datasets/ in the 
-container:
+To use a specific data file, make it available at /workspace/data/cellxgene_datasets/ in the container:
 
 ```bash
 docker run -p 3000:3000 --entrypoint /usr/local/bin/cellxgene -v $(pwd)/data:/workspace/data/cellxgene_datasets cellxgene-example launch \

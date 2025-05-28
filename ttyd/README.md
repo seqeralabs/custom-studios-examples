@@ -8,6 +8,7 @@ This example provides a custom container image for running an interactive termin
 - [Features](#features)
 - [Files](#files)
 - [Prerequisites](#prerequisites)
+- [Building the Container](#building-the-container)
 - [Local Testing](#local-testing)
 - [Using in Seqera Studios](#using-in-seqera-studios)
 - [Notes](#notes)
@@ -49,12 +50,22 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 
 No additional prerequisites specific to this example.
 
-## Local Testing
+## Building the Container
 
-To test the terminal locally:
+> [!IMPORTANT]
+> You must provide the `CONNECT_CLIENT_VERSION` build argument when building the container.
+
+To build the container locally:
 
 ```bash
-docker build --platform=linux/amd64 -t ttyd-example .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.8 -t ttyd-example .
+```
+
+## Local Testing
+
+To test the terminal locally, you need to override the entrypoint:
+
+```bash
 docker run -p 3000:3000 --entrypoint ttyd ttyd-example -W -p 3000 bash
 ```
 

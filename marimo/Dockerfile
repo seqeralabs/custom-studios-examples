@@ -1,4 +1,8 @@
-FROM public.cr.seqera.io/platform/connect-client:0.7 AS connect
+# ---------------------------------------------------------------
+# 1) Multi-stage build: Pull the connect-client binary
+# ---------------------------------------------------------------
+ARG CONNECT_CLIENT_VERSION
+FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Choose a python version that you know works with your application
 FROM python:3.11-slim

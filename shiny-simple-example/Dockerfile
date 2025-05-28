@@ -1,7 +1,8 @@
 # ---------------------------------------------------------------
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
-FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
+ARG CONNECT_CLIENT_VERSION
+FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # ---------------------------------------------------------------
 # 2) Final stage: Ubuntu + micromamba + r-shiny
