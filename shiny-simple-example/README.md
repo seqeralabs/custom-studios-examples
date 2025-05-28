@@ -8,6 +8,7 @@ This example provides a custom container image for running a [R Shiny](https://s
 - [Features](#features)
 - [Files](#files)
 - [Prerequisites](#prerequisites)
+- [Building the Container](#building-the-container)
 - [Local Testing](#local-testing)
 - [Using in Seqera Studios](#using-in-seqera-studios)
 - [Notes](#notes)
@@ -50,12 +51,22 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 - Access to a container registry (public or Amazon ECR) if you wish to push your image
 - R data files in CSV format
 
-## Local Testing
+## Building the Container
 
-To test the app locally:
+> [!IMPORTANT]
+> You must provide the `CONNECT_CLIENT_VERSION` build argument when building the container.
+
+To build the container locally:
 
 ```bash
-docker build --platform=linux/amd64 -t shiny-simple-example .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.8 -t shiny-simple-example .
+```
+
+## Local Testing
+
+To test the app locally, you need to override the entrypoint:
+
+```bash
 docker run -p 3000:3000 --entrypoint micromamba shiny-simple-example run -n shiny R -e "shiny::runApp('/app/app_plot_demo.R', host='0.0.0.0', port=3000)"
 ```
 

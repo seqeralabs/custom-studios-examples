@@ -9,11 +9,18 @@ on:
         description: 'Tag to use for the images (e.g., v1.0.0)'
         required: true
         type: string
+      connect_client_version:
+        description: 'Version of connect-client to use (e.g., 0.8)'
+        required: true
+        type: string
+        default: '0.8'
 
 env:
   REGISTRY: ghcr.io
   # Use release tag for releases, or input tag for manual runs
   IMAGE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  # Use provided connect-client version or default to 0.8
+  CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.8' }}
 
 jobs:
   build-and-push:
@@ -52,6 +59,8 @@ jobs:
         with:
           context: ${{ matrix.container.path }}
           push: true
+          build-args: |
+            CONNECT_CLIENT_VERSION=${{ env.CONNECT_CLIENT_VERSION }}
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.container.name }}:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.container.name }}:latest

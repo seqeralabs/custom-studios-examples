@@ -44,16 +44,13 @@ This container is designed for use as a [custom Studio environment](https://docs
 
 ## Building the Container
 
+> [!IMPORTANT]
+> You must provide the `CONNECT_CLIENT_VERSION` build argument when building the container.
+
 To build the container locally:
 
 ```sh
-wave -f Dockerfile --await
-```
-
-Or, using Docker directly:
-
-```sh
-docker build -t marimo-studio .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.8 -t marimo-studio .
 ```
 
 > [!NOTE]

@@ -1,5 +1,8 @@
-# Stage 1: Get the Seqera Connect client
-FROM public.cr.seqera.io/platform/connect-client:0.8 AS connect
+# ---------------------------------------------------------------
+# 1) Multi-stage build: Pull the connect-client binary
+# ---------------------------------------------------------------
+ARG CONNECT_CLIENT_VERSION
+FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Final image: Start from an arbitrary container
 FROM community.wave.seqera.io/library/samtools:1.21--0d76da7c3cf7751c
