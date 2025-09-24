@@ -35,6 +35,8 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 - Support for .h5ad datasets
 - Interactive single-cell data exploration
 - Automatic data mounting via datalinks
+- Configurable dataset path and title via environment variables
+- Cloud storage path support with automatic translation to local Studio paths
 
 > [!NOTE]
 > For common features shared across all examples, see the [main README](../README.md#common-features).
@@ -42,7 +44,8 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 ## Files
 
 - `Dockerfile`: Container definition using multi-stage build
-- `pbmc3k.h5ad`: Example dataset (mounted via datalink)
+- `README.md`: This documentation file
+- `screenshot.png`: Example screenshot of the CellxGene interface
 
 ## Prerequisites
 
@@ -91,21 +94,44 @@ docker run -p 3000:3000 --entrypoint /usr/local/bin/cellxgene -v $(pwd)/data:/wo
 
 The app will be available at http://localhost:3000
 
+## Cloud Storage Path Translation
+
+The container automatically converts cloud storage paths to local Studio paths. Supported providers include:
+
+- **Amazon S3**: `s3://bucket/path/to/dataset.h5ad`
+- **Google Cloud Storage**: `gs://bucket/path/to/dataset.h5ad`  
+- **Azure Blob Storage**: `az://container/path/to/dataset.h5ad`
+
+**Examples:**
+- S3: `s3://my-genomics-data/single-cell/experiment1.h5ad` → `/workspace/data/my-genomics-data/single-cell/experiment1.h5ad`
+- GCS: `gs://research-bucket/datasets/pbmc3k.h5ad` → `/workspace/data/research-bucket/datasets/pbmc3k.h5ad`
+- Azure: `az://data-container/studies/cellxgene.h5ad` → `/workspace/data/data-container/studies/cellxgene.h5ad`
+
+**Requirements:**
+- Mount the cloud storage bucket/container from Data Explorer in Seqera Studios
+- Provide cloud storage paths in the `DATASET_FILE` environment variable
+
 ## Using in Seqera Studios
 
 > [!NOTE]
 > For the common deployment process, see the [main README](../README.md#deploying-to-seqera-studios).
 
 Additional steps specific to this example:
-1. Create a data link called 'cellxgene_datasets' and place your .h5ad file there
+1. In the **Compute and Data** tab, click the **Mount data** button to mount your cloud storage bucket/container
 2. Follow the common deployment process
-3. When mounting data, ensure to mount 'cellxgene_datasets' using the **Mount data** option
+3. Configure environment variables:
+   - `DATASET_FILE`: Cloud storage path to your .h5ad file
+     - Supports S3 (`s3://`), Google Cloud Storage (`gs://`), and Azure Blob Storage (`az://`) paths
+     - Example: `s3://my-genomics-data/single-cell/experiment1.h5ad`
+   - `DATASET_TITLE`: Title to display in the CellxGene interface
+     - Example: `"My Single-Cell Analysis"`
 
 ## Notes
 
 - The app uses CellxGene 1.3.0 for interactive single-cell data visualization
 - User data and annotations are stored in /user-data/cellxgene
-- The default dataset is pbmc3k.h5ad, but can be changed via the DATASET_NAME environment variable
+- Specify your dataset via the DATASET_FILE environment variable
+- Customize the display title via the DATASET_TITLE environment variable
 
 > [!NOTE]
 > For common technical notes, see the [main README](../README.md#common-features).

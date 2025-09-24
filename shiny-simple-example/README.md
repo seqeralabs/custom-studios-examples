@@ -31,18 +31,19 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 
 ## Features
 
-- Simple scatter plot visualization
-- Interactive data filtering
+- Advanced data visualization with multiple plot types (scatter, line, bar, box, density)
+- Interactive controls and color themes
 - Compatible with both local Docker testing and Seqera Studios
 - Efficient package management with micromamba
 - Easy data mounting via datalinks
+- Configurable data path via environment variables
+- Cloud storage path support with automatic translation to local Studio paths
 
 ## Files
 
 - `app_plot_demo.R`: The main Shiny application
 - `example_data.csv`: Sample data for the visualization
 - `Dockerfile`: Container definition
-- `run.sh`: Entrypoint script that handles both local and Studios environments
 
 ## Prerequisites
 
@@ -78,23 +79,44 @@ docker run -p 3000:3000 --entrypoint micromamba -v $(pwd)/../data/shiny-inputs:/
 
 The app will be available at http://localhost:3000
 
+## Cloud Storage Path Translation
+
+The application automatically converts cloud storage paths to local Studio paths. Supported providers include:
+
+- **Amazon S3**: `s3://bucket/path/to/data.csv`
+- **Google Cloud Storage**: `gs://bucket/path/to/data.csv`  
+- **Azure Blob Storage**: `az://container/path/to/data.csv`
+
+**Examples:**
+- S3: `s3://my-data-bucket/datasets/experiment.csv` → `/workspace/data/my-data-bucket/datasets/experiment.csv`
+- GCS: `gs://research-data/analysis/results.csv` → `/workspace/data/research-data/analysis/results.csv`
+- Azure: `az://data-container/studies/sample.csv` → `/workspace/data/data-container/studies/sample.csv`
+
+**Requirements:**
+- Mount the cloud storage bucket/container from Data Explorer in Seqera Studios
+- Provide cloud storage paths in the `DATA_PATH` environment variable
+
 ## Using in Seqera Studios
 
 > [!NOTE]
 > For the common deployment process, see the [main README](../README.md#deploying-to-seqera-studios).
 
 Additional steps specific to this example:
-1. Create a data link called 'shiny-inputs' and place your input file called 'data.csv' there
+1. In the **Compute and Data** tab, click the **Mount data** button to mount your cloud storage bucket/container
 2. Follow the common deployment process
-3. When mounting data, ensure to mount 'shiny-inputs' using the **Mount data** option
+3. Configure environment variables:
+   - `DATA_PATH`: Cloud storage path to your CSV file
+     - Supports S3 (`s3://`), Google Cloud Storage (`gs://`), and Azure Blob Storage (`az://`) paths
+     - Example: `s3://my-data-bucket/datasets/experiment.csv`
 
 ## Notes
 
-- The app uses a simple scatter plot to demonstrate Shiny's capabilities
+- The app provides advanced data visualization with multiple plot types and interactive controls
 - The Dockerfile uses micromamba for efficient package management
 - The container is built for linux/amd64 platform compatibility
 - Data files should be in CSV format
-- The example includes a sample dataset for demonstration
+- Specify your data file via the DATA_PATH environment variable
+- Cloud storage paths are automatically converted to local Studio paths
 
 ## References
 

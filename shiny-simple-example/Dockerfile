@@ -50,6 +50,9 @@ RUN /usr/bin/connect-client --install
 # Set a working directory for your app
 WORKDIR /app
 
+# Define data path with default
+ENV DATA_PATH=s3://shiny-inputs/data.csv
+
 # Copy your Shiny code and data
 COPY app_plot_demo.R /app/
 COPY data.csv /app/

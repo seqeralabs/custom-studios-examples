@@ -42,8 +42,33 @@ All examples follow the same deployment process:
    - Select your compute environment
    - Adjust CPU, GPU, and memory allocations as needed
    - Mount any required data using the **Mount data** option
+   - Configure environment variables if the example supports them (see [Environment Variables](#environment-variables) section)
 5. Review the configuration in the **Summary** section
 6. Click **Add and start** to create and launch the Studio
+
+## Environment Variables
+
+Some examples support environment variable configuration to customize data paths and application settings without modifying the container image. This makes those examples more flexible and reusable across different datasets and configurations.
+
+### Examples with Environment Variables
+
+Only the following examples support environment variable configuration:
+- **CellxGene**: `DATASET_FILE`, `DATASET_TITLE` - Configure dataset path and display title
+- **Shiny**: `DATA_PATH` - Configure data file path with automatic cloud storage path conversion
+
+### Examples without Environment Variables
+
+These examples work with their default configurations and don't require environment variable setup:
+- **Marimo**: Interactive Python notebook environment
+- **Streamlit**: MultiQC visualization with web-based data loading interface
+- **TTYD**: Web-based terminal with pre-installed bioinformatics tools
+
+### Using Environment Variables in Seqera Studios
+
+When deploying to Seqera Studios, you can configure environment variables in the **Compute and Data** section:
+1. Expand the **Environment variables** section
+2. Add key-value pairs for the variables you want to customize
+3. The application will use these values instead of the defaults
 
 ## Documentation
 
