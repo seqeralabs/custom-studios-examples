@@ -68,20 +68,12 @@ convert_path() {\n\
   fi\n\
 }\n\
 \n\
-# Process dataset path\n\
-DATASET_CLOUD=${DATASET_FILE#*://}\n\
-DATASET_BUCKET=${DATASET_CLOUD%%/*}\n\
-DATASET_OBJECT=${DATASET_CLOUD#*/}\n\
-DATASET_LOCAL=\"/workspace/data/${DATASET_BUCKET}/${DATASET_OBJECT}\"\n\
-\n\
-# Process user data and annotations paths using the function\n\
+DATASET_LOCAL=$(convert_path \"${DATASET_FILE}\")\n\
 USERDATA_LOCAL=$(convert_path \"${USER_DATA_DIR}\")\n\
 ANNOTATIONS_LOCAL=$(convert_path \"${ANNOTATIONS_DIR}\")\n\
 \n\
-# Ensure directories exist\n\
 mkdir -p \"${USERDATA_LOCAL}\" \"${ANNOTATIONS_LOCAL}\"\n\
 \n\
-# Launch cellxgene\n\
 /usr/local/bin/cellxgene launch --host 0.0.0.0 --port ${CONNECT_TOOL_PORT} \\\n\
   --user-generated-data-dir \"${USERDATA_LOCAL}\" \\\n\
   --annotations-dir \"${ANNOTATIONS_LOCAL}\" \\\n\
