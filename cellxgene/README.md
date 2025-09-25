@@ -35,7 +35,7 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 - Support for .h5ad datasets
 - Interactive single-cell data exploration
 - Automatic data mounting via datalinks
-- Configurable dataset path and title via environment variables
+- Configurable dataset path, title, and storage directories via environment variables
 - Cloud storage path support with automatic translation to local Studio paths
 
 > [!NOTE]
@@ -111,6 +111,9 @@ The container automatically converts cloud storage paths to local Studio paths. 
 - Mount the cloud storage bucket/container from Data Explorer in Seqera Studios
 - Provide cloud storage paths in the `DATASET_FILE` environment variable
 
+> [!WARNING]
+> **Bucket Mounting Required**: When using cloud storage paths (`s3://`, `gs://`, `az://`), ensure the corresponding buckets are mounted in your Studio via the **Mount data** option. Unmounted buckets will cause the Studio to fail when trying to access the converted paths.
+
 ## Using in Seqera Studios
 
 > [!NOTE]
@@ -125,11 +128,23 @@ Additional steps specific to this example:
      - Example: `s3://my-genomics-data/single-cell/experiment1.h5ad`
    - `DATASET_TITLE`: Title to display in the CellxGene interface
      - Example: `"My Single-Cell Analysis"`
+   - `USER_DATA_DIR`: Path for user-generated data storage
+     - Default: `/user-data/cellxgene` (local directory)
+     - Supports cloud storage paths (automatically converted to local Studio paths)
+     - Example: `s3://my-bucket/user-data/cellxgene`
+   - `ANNOTATIONS_DIR`: Path for annotations storage
+     - Default: `/user-data/cellxgene` (local directory)
+     - Supports cloud storage paths (automatically converted to local Studio paths)
+     - Example: `s3://my-bucket/annotations/cellxgene`
+
+> [!WARNING]
+> **Bucket Mounting**: If using cloud storage paths for `USER_DATA_DIR` or `ANNOTATIONS_DIR`, ensure the corresponding buckets are mounted in your Studio. Unmounted buckets will cause the Studio to fail when trying to access the converted paths.
 
 ## Notes
 
 - The app uses CellxGene 1.3.0 for interactive single-cell data visualization
-- User data and annotations are stored in /user-data/cellxgene
+- User data and annotations directories can be configured via environment variables
+- Default storage locations: `/user-data/cellxgene` (can be overridden with cloud storage paths)
 - Specify your dataset via the DATASET_FILE environment variable
 - Customize the display title via the DATASET_TITLE environment variable
 
