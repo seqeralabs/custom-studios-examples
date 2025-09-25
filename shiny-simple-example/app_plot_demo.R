@@ -100,7 +100,20 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     # Read data
     data <- reactive({
-        file_path <- '/workspace/data/shiny-inputs/data.csv'
+        data_path <- Sys.getenv('DATA_PATH', 's3://shiny-inputs/data.csv')
+        
+        # Convert cloud storage path to local Studio path
+        if (grepl('^s3://|^gs://|^az://', data_path)) {
+            # Remove any cloud storage prefix and convert to local path
+            cloud_path <- sub('^[^:]+://', '', data_path)
+            bucket_name <- strsplit(cloud_path, '/')[[1]][1]
+            object_path <- sub(paste0('^', bucket_name, '/'), '', cloud_path)
+            file_path <- paste0('/workspace/data/', bucket_name, '/', object_path)
+        } else {
+            # Use path as-is for local paths
+            file_path <- data_path
+        }
+        
         if (file.exists(file_path)) {
             read.csv(file_path)
         } else {
@@ -114,9 +127,20 @@ server <- function(input, output, session) {
     
     # Data source message
     output$data_source <- renderText({
-        file_path <- '/workspace/data/shiny-inputs/data.csv'
+        data_path <- Sys.getenv('DATA_PATH', 's3://shiny-inputs/data.csv')
+        
+        # Convert cloud storage path to local Studio path (same logic as data reading)
+        if (grepl('^s3://|^gs://|^az://', data_path)) {
+            cloud_path <- sub('^[^:]+://', '', data_path)
+            bucket_name <- strsplit(cloud_path, '/')[[1]][1]
+            object_path <- sub(paste0('^', bucket_name, '/'), '', cloud_path)
+            file_path <- paste0('/workspace/data/', bucket_name, '/', object_path)
+        } else {
+            file_path <- data_path
+        }
+        
         if (file.exists(file_path)) {
-            "Using external data file"
+            paste("Using external data file:", data_path)
         } else {
             "Using built-in random data"
         }
