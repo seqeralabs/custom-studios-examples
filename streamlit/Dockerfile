@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
-ARG CONNECT_CLIENT_VERSION
+ARG CONNECT_CLIENT_VERSION=0.8
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # ---------------------------------------------------------------
@@ -17,7 +17,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    software-properties-common \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -42,10 +41,10 @@ ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 # Add backports repository and install specific btrfs-progs version
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y btrfs-progs=6.14-1~bpo12+1
+    apt-get install -y --allow-downgrades btrfs-progs=6.14-1~bpo12+1
 
 # ---------------------------------------------------------------
-# 4) Command: Run CellxGene with a dataset from a data link defined via DATASET_NAME
+# 4) Command: Run Streamlit MultiQC application
 # ---------------------------------------------------------------
 # The port is set by CONNECT_TOOL_PORT environment variable
 CMD streamlit run /app/multiqc_app.py \

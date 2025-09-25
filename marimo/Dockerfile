@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
-ARG CONNECT_CLIENT_VERSION
+ARG CONNECT_CLIENT_VERSION=0.8
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Choose a python version that you know works with your application
@@ -26,7 +26,7 @@ EXPOSE $CONNECT_TOOL_PORT
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /bin/sh -c "/usr/bin/connect-client --install"
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list
-RUN apt update && apt install -y btrfs-progs=6.14-1~bpo12+1
+RUN apt update && apt install -y --allow-downgrades btrfs-progs=6.14-1~bpo12+1
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
 CMD marimo edit -p $CONNECT_TOOL_PORT --no-token
