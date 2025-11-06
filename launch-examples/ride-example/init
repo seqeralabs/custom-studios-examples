@@ -1,0 +1,61 @@
+#!/bin/bash
+
+_term() {
+  if [nginx_child != 0]; then
+    kill -TERM "$nginx_child" 2>/dev/null
+  fi
+
+  echo "terminating rstudio $child on SIGTERM"
+  kill -TERM "$child" 2>/dev/null
+}
+
+_int() {
+  if [nginx_child != 0]; then
+    kill -INT "$nginx_child" 2>/dev/null
+  fi
+
+  echo "terminating rstudio $child on SIGINT"
+  kill -INT "$child" 2>/dev/null
+}
+
+_find_free_port() {
+  from=$1
+  BASE_PORT=$((from + 1))
+  port=$BASE_PORT
+  while [ -n "$(ss -tan4H "sport = $port")" ]; do
+    port=$((port+1))
+  done
+  echo $port
+}
+
+trap _term SIGTERM
+trap _int SIGINT
+
+source /usr/local/bin/_activate_current_env.sh
+sed -i "/rsession-which-r/c\rsession-which-r=$(which R)" /etc/rstudio/rserver.conf
+
+nginx_child=0
+# configure nginx ONLY if running on custom path
+if [ -n "$CONNECT_TOOL_PATH_PREFIX" ]; then
+  export NGINX_PORT="${CONNECT_TOOL_PORT}"
+  export CONNECT_TOOL_PORT=$(_find_free_port $NGINX_PORT)
+
+  envsubst '${NGINX_PORT} ${CONNECT_TOOL_PORT} ${CONNECT_TOOL_PATH_PREFIX}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+  # Start NGINX in the background
+  nginx -g "daemon off;" &
+  nginx_child=$!
+
+  echo "R-IDE exposed at: http://localhost:$NGINX_PORT$CONNECT_TOOL_PATH_PREFIX"
+fi
+
+RSTUDIO_WHICH_R=$(which R) LD_LIBRARY_PATH=/opt/conda/lib /usr/lib/rstudio-server/bin/rserver \
+  --www-port "${CONNECT_TOOL_PORT}" \
+  --auth-none 1 \
+  --server-daemonize 0 \
+  --server-user "$USER" \
+  --auth-minimum-user-id 0 &
+echo "R-IDE running at: http://localhost:$CONNECT_TOOL_PORT"
+
+child=$!
+wait "$child"
+echo "exited rstudio: $child"
