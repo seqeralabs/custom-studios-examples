@@ -10,17 +10,17 @@ on:
         required: true
         type: string
       connect_client_version:
-        description: 'Version of connect-client to use (e.g., 0.8)'
+        description: 'Version of connect-client to use (e.g., 0.9)'
         required: true
         type: string
-        default: '0.8'
+        default: '0.9'
 
 env:
   REGISTRY: ghcr.io
   # Use release tag for releases, or input tag for manual runs
   IMAGE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
-  # Use provided connect-client version or default to 0.8
-  CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.8' }}
+  # Use provided connect-client version or default to 0.9
+  CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.9' }}
 
 jobs:
   build-and-push:
