@@ -38,6 +38,10 @@ ENV ANNOTATIONS_DIR=/user-data/cellxgene
 # Create user-data directory
 RUN mkdir -p /user-data/cellxgene
 
+# Add connect-client version label to image for supported capabilties tracking
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
+
 # Copy connect-client from the first stage
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 

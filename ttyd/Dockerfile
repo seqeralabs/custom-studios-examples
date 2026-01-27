@@ -27,6 +27,10 @@ RUN wget https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
     && mv ttyd.x86_64 /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd
 
+# Add connect-client version label to image for supported capabilties tracking
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
+
 # Copy Connect binary and install dependencies
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /usr/bin/connect-client --install
