@@ -41,6 +41,10 @@ RUN rm -rf /opt/conda/pkgs/*.lock && \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
 
+# Add connect-client version label to image for supported capabilties tracking
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
+
 # Copy connect-client from the first stage
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 

@@ -23,6 +23,8 @@ RUN uv pip install scikit-learn pandas altair micropip marimo==0.11.13
 # Define the port for the marimo server
 EXPOSE $CONNECT_TOOL_PORT
 
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /bin/sh -c "/usr/bin/connect-client --install"
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | tee -a /etc/apt/sources.list

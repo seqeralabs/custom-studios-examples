@@ -27,6 +27,10 @@ RUN pip3 install -r requirements.txt
 
 EXPOSE $CONNECT_TOOL_PORT
 
+# Add connect-client version label to image for supported capabilties tracking
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
+
 # Copy connect-client from the first stage
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 
