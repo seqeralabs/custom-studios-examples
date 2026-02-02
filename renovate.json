@@ -1,0 +1,80 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "description": "Renovate config for custom-studios-examples - manages Docker base images and connect-client versions",
+  "schedule": ["before 9am on monday"],
+  "timezone": "UTC",
+  "automerge": false,
+  "labels": ["dependencies"],
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update CONNECT_CLIENT_VERSION ARG in Dockerfiles",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\nARG CONNECT_CLIENT_VERSION=(?<currentValue>.*)"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Update connect_client_version default in GitHub workflow",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\n\\s+default:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?"
+      ],
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Update pip packages with pinned versions",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*)\\n.*(?:pip install|uv pip install).*\\s\\S*==(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group connect-client updates across all Dockerfiles",
+      "groupName": "connect-client",
+      "matchDepNames": ["public.cr.seqera.io/platform/connect-client"],
+      "matchManagers": ["regex", "dockerfile"]
+    },
+    {
+      "description": "Group Python base image updates",
+      "groupName": "python-base-images",
+      "matchDepNames": ["python"],
+      "matchManagers": ["dockerfile"]
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Update uv separately",
+      "groupName": "uv",
+      "matchDepNames": ["ghcr.io/astral-sh/uv"]
+    },
+    {
+      "description": "Update Wave images separately",
+      "groupName": "wave-images",
+      "matchDepPatterns": ["^community\\.wave\\.seqera\\.io/"]
+    },
+    {
+      "description": "Python pip packages",
+      "groupName": "python-packages",
+      "matchDatasources": ["pypi"]
+    }
+  ],
+  "dockerfile": {
+    "enabled": true
+  },
+  "github-actions": {
+    "enabled": true
+  }
+}

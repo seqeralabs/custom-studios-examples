@@ -20,6 +20,7 @@ on:
         description: 'Version of connect-client to use (e.g., 0.9)'
         required: false
         type: string
+        # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
         default: '0.9'
 
 env:

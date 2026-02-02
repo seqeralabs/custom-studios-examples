@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
+# renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
 ARG CONNECT_CLIENT_VERSION=0.9
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
@@ -27,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install CellxGene and its dependencies
+# renovate: datasource=pypi depName=cellxgene
 RUN pip install cellxgene==1.3.0
 
 # Define CellxGene dataset path and title with defaults
