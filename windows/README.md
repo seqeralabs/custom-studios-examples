@@ -1,382 +1,311 @@
-# Bottles & Wine for Seqera Studios
+# Wine for Windows Software in Seqera Studios
 
-Run Windows software on Linux in Seqera Studios. This repository provides two options:
+Run Windows software on Linux in Seqera Studios using Wine. **Three container options** are provided, with varying complexity and compatibility.
 
-1. **Bottles (GUI)**: Full desktop environment with Bottles application for easy Windows software management
-2. **Wine (CLI)**: Lightweight command-line Wine access via web terminal
+## ⚠️ Architecture Notice
 
-## Choose Your Option
+If you're building on **Apple Silicon (ARM64)**, use the **Wine Desktop** option. Bottles may not work due to Flatpak limitations on ARM architecture.
 
-### Option 1: Bottles (Full GUI) - Recommended for Most Users
+## 🎯 Recommended Option: Wine Desktop
 
-**Best for:**
-- Users who prefer graphical interfaces
-- Installing Windows applications with setup wizards
-- Running complex Windows software
-- Managing multiple Windows environments
+**Use `Dockerfile.wine-desktop`** - This provides:
+- ✅ Reliable installation on all architectures
+- ✅ Web-accessible Xfce desktop
+- ✅ Wine pre-configured and ready
+- ✅ Desktop shortcuts for common tasks
+- ✅ File manager for easy data access
+- ✅ No Flatpak/Bottles dependencies
 
-**What you get:**
-- Full Xfce desktop in your browser
-- Bottles GUI for easy Wine management
-- Pre-configured environments
-- Graphical dependency management
+## Three Container Options
 
-**File**: `Dockerfile.bottles`
+### 1. Wine Desktop (RECOMMENDED) ⭐
 
-### Option 2: Wine (Command-Line) - Lightweight Alternative
+**File**: `Dockerfile.wine-desktop`  
+**Best for**: Most users, works on ARM64 and x86_64
 
-**Best for:**
-- Command-line users
-- Simpler Windows console applications
-- Scripts and automation
-- Minimal resource usage
+**Features**:
+- Full Xfce desktop in browser
+- Wine pre-installed and configured
+- Desktop shortcuts for Wine tools
+- File manager access to mounted data
+- Most reliable and compatible
 
-**What you get:**
-- Web-based terminal (TTYD)
+**Resources**: 2+ CPU, 4+ GB RAM
+
+---
+
+### 2. Wine CLI (Lightweight)
+
+**File**: `Dockerfile.wine-simple`  
+**Best for**: Command-line users, automation
+
+**Features**:
+- Web terminal (TTYD)
 - Direct Wine CLI access
-- Smaller container size
+- Minimal resources
 - Faster startup
 
-**File**: `Dockerfile.wine-simple`
+**Resources**: 1+ CPU, 2+ GB RAM
+
+---
+
+### 3. Bottles GUI (Experimental)
+
+**File**: `Dockerfile.bottles`  
+**Best for**: Users who specifically need Bottles
+
+**Features**:
+- Bottles application GUI
+- Wine environment management
+- May not work on all systems
+
+**Resources**: 2+ CPU, 4+ GB RAM
+
+⚠️ **Note**: Bottles installation via Flatpak can be unreliable, especially on ARM64. If this fails, use Wine Desktop instead.
 
 ---
 
 ## Quick Start
 
-### Building
-
-Use the provided build script:
+### Build the Recommended Container
 
 ```bash
-# Build both containers
-./build.sh both your-registry
+# Build Wine Desktop (recommended)
+./build.sh wine-desktop ghcr.io/myorg
 
-# Build only Bottles GUI
-./build.sh bottles ghcr.io/myorg
-
-# Build only Wine CLI
-./build.sh wine cr.seqera.io/myworkspace
+# Or build manually
+docker build --build-arg CONNECT_CLIENT_VERSION=0.8 \
+  -t your-registry/studios-wine-desktop:latest \
+  -f Dockerfile.wine-desktop .
 ```
 
-Or build manually:
+### Build All Containers
 
 ```bash
-# Bottles GUI
-docker build --build-arg CONNECT_CLIENT_VERSION=0.9 \
-  -t your-registry/studios-bottles:latest \
-  -f Dockerfile.bottles .
-
-# Wine CLI
-docker build --build-arg CONNECT_CLIENT_VERSION=0.9 \
-  -t your-registry/studios-wine:latest \
-  -f Dockerfile.wine-simple .
+./build.sh all ghcr.io/myorg --no-cache
 ```
 
 ---
 
-## Detailed Documentation
-
-## What is Bottles?
-
-Bottles is a user-friendly application that manages Wine environments (called "bottles") to run Windows software on Linux. It provides:
-- Easy installation of Windows applications (.exe, .msi files)
-- Pre-configured environments for gaming and applications
-- Dependency management
-- Multiple isolated Windows environments
-- GUI for managing Wine prefixes
-
-## How This Works
-
-This container uses:
-- **Xfce**: Lightweight desktop environment
-- **TigerVNC**: VNC server for remote desktop access
-- **noVNC**: Web-based VNC client (accessible via browser)
-- **Bottles**: Installed via Flatpak for managing Windows software
-
-When you launch this Studio, you'll access a full Linux desktop through your browser, where Bottles is ready to use.
-
-## Building the Container
-
-### Prerequisites
-- Docker installed
-- Access to a container registry (e.g., Docker Hub, GitHub Container Registry, Amazon ECR)
-
-### Build Command
-
-```bash
-docker build \
-  --build-arg CONNECT_CLIENT_VERSION=0.9 \
-  -t your-registry/bottles-studios:latest \
-  -f Dockerfile.bottles \
-  .
-```
-
-### Push to Registry
-
-```bash
-docker push your-registry/bottles-studios:latest
-```
-
-## Testing Locally (Optional)
-
-You can test the container locally before deploying to Studios:
-
-```bash
-# Run the container
-docker run -p 8080:8080 \
-  -e CONNECT_TOOL_PORT=8080 \
-  your-registry/bottles-studios:latest
-
-# Access in browser at http://localhost:8080
-```
-
 ## Deploying to Seqera Studios
 
-### Step 1: Configure Wave (if not already done)
-Ensure Wave is configured in your workspace. See [Wave documentation](https://docs.seqera.io/platform-cloud/wave/).
+### Prerequisites
+- Wave configured in workspace ([docs](https://docs.seqera.io/platform-cloud/wave/))
+- Container repository set in **Settings > Studios > Container repository**
+- Credentials for your registry
 
-### Step 2: Set Container Repository
-In your workspace:
-1. Go to **Settings > Studios > Container repository**
-2. Set the target repository where images will be pushed
+### Deployment Steps
 
-### Step 3: Add the Studio
+1. **Navigate to Studios** tab
+2. **Click "Add Studio"**
 
-1. Navigate to **Studios** tab in Seqera Platform
-2. Click **Add Studio**
+#### General Config:
+- Container template: **"Prebuilt container image"**
+- Container image: `your-registry/studios-wine-desktop:latest`
+- Studio name: "Wine Desktop for Windows Apps"
 
-#### General Config Tab:
-- **Container template**: Select "Prebuilt container image"
-- **Container image**: Enter your image URI (e.g., `your-registry/bottles-studios:latest`)
-- **Studio name**: "Bottles Windows Software"
-- **Description**: "Run Windows applications via Bottles and Wine"
+#### Compute and Data:
+- **CPU**: 2+ (4 recommended)
+- **Memory**: 4+ GB (8 GB recommended)
+- **Mount data**: Mount S3 buckets with Windows installers
 
-#### Compute and Data Tab:
-- **Compute environment**: Select your compute environment
-- **CPU**: Minimum 2 CPUs (4+ recommended for better performance)
-- **Memory**: Minimum 4 GB (8+ GB recommended)
-- **GPU**: Optional (can improve graphics performance for some applications)
+3. **Click "Add and start"**
 
-**Mount Data** (if you have Windows installers or data):
-- Mount any S3 buckets containing your Windows software installers
-- Files will be available at `/workspace/data/<bucket-name>/`
+---
 
-3. Click **Add and start**
+## Using Wine in Studios
 
-## Using Bottles in Studios
+### Wine Desktop Option
 
-### First Launch
+1. **Access the Desktop**: Studio opens showing Xfce desktop
+2. **Desktop Shortcuts Available**:
+   - **Wine Configuration**: Configure Wine settings
+   - **Winetricks**: Install Windows components (DirectX, .NET, etc.)
+   - **Data Files**: Browse your mounted S3 data
+   - **Terminal**: Command-line access
 
-1. Once the Studio starts, you'll see an Xfce desktop in your browser
-2. On the desktop, you'll find a "Bottles" icon
-3. Double-click to launch Bottles
+3. **Install Windows Software**:
+   - Open **Data Files** to browse to your .exe/.msi file
+   - Right-click → **Open With** → **Wine**
+   - Follow installation wizard
 
-### Installing Windows Software
+4. **Run Windows Apps**:
+   - Installed apps appear in Xfce application menu
+   - Or run from terminal: `wine /path/to/app.exe`
 
-1. **Create a Bottle**:
-   - Click "Create New Bottle"
-   - Choose a name (e.g., "MyApp")
-   - Select environment type:
-     - **Application**: For general Windows software
-     - **Gaming**: For Windows games
-     - **Custom**: For advanced users
+### Wine CLI Option
 
-2. **Install Software**:
-   - Click on your bottle to open it
-   - Click the "Run Executable" button (cube icon)
-   - Browse to your .exe or .msi installer
-   - Follow the Windows installation wizard
+1. **Access Terminal**: Studio opens web terminal
+2. **Run Windows Software**:
+   ```bash
+   # Run executable
+   wine /workspace/data/my-bucket/app.exe
+   
+   # Install MSI
+   wine msiexec /i /workspace/data/my-bucket/installer.msi
+   
+   # Configure Wine
+   winecfg
+   
+   # Install components
+   winetricks dotnet48 vcrun2019
+   ```
 
-3. **Run Software**:
-   - After installation, installed programs appear under "Programs"
-   - Click the play/arrow icon to launch them
+---
 
-### Accessing Your Files
+## Architecture Compatibility
 
-If you mounted S3 buckets in Studios:
-- Your data is available at `/workspace/data/<bucket-name>/`
-- Use the Xfce file manager to navigate to these locations
-- You can install Windows software from these locations
+| Container | x86_64 | ARM64 (Apple Silicon) |
+|-----------|--------|----------------------|
+| Wine Desktop | ✅ Full support | ✅ Works (64-bit only) |
+| Wine CLI | ✅ Full support | ✅ Works (64-bit only) |
+| Bottles GUI | ✅ Should work | ⚠️ May fail |
 
-### Tips for Best Performance
+**Notes**:
+- ARM64 runs 64-bit Windows apps only (no 32-bit support)
+- Most modern Windows apps are 64-bit compatible
+- For 32-bit app support, build/deploy on x86_64 systems
 
-1. **Resolution**: The desktop is set to 1920x1080. Adjust if needed in Display Settings.
-
-2. **Wine Version**: Bottles manages Wine versions automatically. For better compatibility:
-   - Go to Preferences > Runners in Bottles
-   - Try different Wine or Proton versions
-
-3. **Dependencies**: Bottles has a dependency manager:
-   - In your bottle, go to Dependencies tab
-   - Install common libraries like .NET, Visual C++ runtimes as needed
-
-4. **Persistence**: 
-   - Bottles data persists within the EC2 instance during the Studio session
-   - To keep Bottles data between sessions, consider mounting a persistent EBS volume
-   - Alternatively, use Bottles' export/import feature to backup bottles
-
-## Architecture Details
-
-### Container Structure
-
-```
-┌─────────────────────────────────────┐
-│     Seqera Studios (Browser)        │
-└──────────────┬──────────────────────┘
-               │ HTTP
-               ↓
-┌─────────────────────────────────────┐
-│  noVNC (port $CONNECT_TOOL_PORT)    │
-└──────────────┬──────────────────────┘
-               │ WebSocket
-               ↓
-┌─────────────────────────────────────┐
-│    TigerVNC Server (port 5901)      │
-└──────────────┬──────────────────────┘
-               │ X11
-               ↓
-┌─────────────────────────────────────┐
-│      Xfce Desktop Environment       │
-│    ┌────────────────────────────┐   │
-│    │  Bottles (Flatpak)         │   │
-│    │    └── Wine/Proton         │   │
-│    │        └── Windows Apps    │   │
-│    └────────────────────────────┘   │
-└─────────────────────────────────────┘
-```
-
-### Environment Variables
-
-- `CONNECT_TOOL_PORT`: Automatically set by Studios, used by noVNC
-- `DISPLAY`: Set to `:1` for VNC display
-
-### Signal Handling
-
-The container properly handles SIGTERM for graceful shutdown, ensuring:
-- VNC server stops cleanly
-- Desktop sessions close properly
-- No orphaned processes
-
-## Limitations and Considerations
-
-1. **Performance**: Running a full desktop in a container adds overhead. Performance depends on:
-   - Allocated CPU/memory
-   - Network latency
-   - Complexity of Windows applications
-
-2. **Graphics**: 
-   - Software rendering only (no GPU acceleration by default)
-   - May not be suitable for graphics-intensive games or CAD software
-   - Can add GPU support if needed for specific workloads
-
-3. **Windows Compatibility**:
-   - Not all Windows software works perfectly in Wine
-   - Check [WineHQ AppDB](https://appdb.winehq.org/) for compatibility
-   - Complex applications may require additional configuration
-
-4. **Security**:
-   - VNC runs without authentication (protected by Studios access control)
-   - Don't expose VNC port directly to internet
-   - Studios handles authentication and authorization
+---
 
 ## Troubleshooting
 
-### Desktop doesn't load
-- Wait 30-60 seconds for all services to start
-- Check compute resources are sufficient (min 2 CPU, 4GB RAM)
+### Build Failures
+
+**Problem**: Bottles installation fails  
+**Solution**: Use Wine Desktop instead: `./build.sh wine-desktop`
+
+**Problem**: Wine fails on ARM64  
+**Solution**: This is expected - we removed 32-bit support for ARM compatibility
+
+**Problem**: Build very slow  
+**Solution**: Normal - desktop environment is large (~1-2 GB)
+
+### Runtime Issues
+
+**Desktop doesn't load**:
+- Wait 60 seconds for full startup
+- Check CPU/RAM allocation meets minimum
 - Check Studio logs for errors
 
-### Bottles won't launch
-- Ensure Flatpak is working: `flatpak list` in terminal
-- Check permissions: `flatpak run com.usebottles.bottles` from terminal
-- Review logs: `journalctl --user -f`
+**Windows app won't run**:
+- Try different Wine version via `winecfg`
+- Install dependencies: `winetricks vcrun2019 dotnet48`
+- Check [WineHQ AppDB](https://appdb.winehq.org/) for known issues
 
-### Windows application won't install
-- Try a different Wine/Proton version in Bottles
-- Check if dependencies are needed (vcredist, .NET, etc.)
-- Consult WineHQ AppDB for known issues
-
-### Performance issues
+**Performance issues**:
 - Increase CPU/memory allocation
-- Close unnecessary programs
-- Use lighter-weight Windows applications when possible
+- Use Wine CLI for simpler apps
+- Some Windows apps are inherently slow in Wine
 
-## Using Wine CLI (Simple Option)
+---
 
-If you built the Wine CLI container (`Dockerfile.wine-simple`), here's how to use it:
+## File Access
 
-### First Launch
-
-1. Once the Studio starts, you'll see a web terminal (TTYD)
-2. A welcome message displays common Wine commands
-3. Wine is pre-initialized and ready to use
-
-### Running Windows Software
-
-```bash
-# Run a Windows executable
-wine /workspace/data/my-bucket/application.exe
-
-# Install an MSI package
-wine msiexec /i /workspace/data/my-bucket/installer.msi
-
-# Install .NET Framework
-winetricks dotnet48
-
-# Configure Wine
-winecfg
+Mounted S3 buckets appear at:
+```
+/workspace/data/<bucket-name>/
 ```
 
-### Common Wine Commands
+**Wine Desktop**: Use "Data Files" shortcut or file manager  
+**Wine CLI**: Navigate with `cd /workspace/data/`
+
+---
+
+## Common Wine Commands
 
 ```bash
 # Check Wine version
 wine --version
 
-# Install Windows components (fonts, libraries, etc.)
+# Configure Wine (opens GUI)
+winecfg
+
+# Install Windows components
 winetricks
 
-# List installed components
-winetricks list-installed
+# Common components:
+winetricks dotnet48      # .NET Framework
+winetricks vcrun2019     # Visual C++ Runtime
+winetricks corefonts     # Microsoft fonts
+winetricks d3dx9         # DirectX 9
+
+# Run Windows executable
+wine application.exe
+
+# Install MSI package
+wine msiexec /i installer.msi
 
 # Kill Wine processes
 wineserver -k
 
-# Show Windows registry editor
-wine regedit
+# List installed programs
+ls ~/.wine/drive_c/Program\ Files/
 ```
 
-### Advantages of Wine CLI
-- Faster startup (no desktop environment)
-- Lower resource usage (~1-2 GB RAM vs 4+ GB for GUI)
-- Better for automation and scripts
-- Direct command-line control
+---
 
-### Limitations
-- No graphical installer wizards
-- Requires knowledge of Wine commands
-- Less user-friendly for complex setups
-- No Bottles GUI features
+## Comparison Table
 
-## Alternative Approach: Command-Line Wine
+| Feature | Wine Desktop | Wine CLI | Bottles GUI |
+|---------|-------------|----------|-------------|
+| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Reliability** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| **ARM64 Support** | ✅ | ✅ | ❌ |
+| **Resource Usage** | Medium | Low | Medium-High |
+| **GUI Installers** | ✅ | ❌ | ✅ |
+| **File Browsing** | ✅ | ❌ | ✅ |
+| **Startup Time** | ~30-60s | ~10s | ~30-60s |
 
-For a lighter-weight alternative without Bottles GUI, consider using Wine directly with TTYD (web terminal). See the [TTYD example](https://github.com/seqeralabs/custom-studios-examples/tree/master/ttyd) from Seqera's custom Studios repository.
+---
+
+## Advanced Configuration
+
+### Custom Wine Versions
+
+Wine Desktop and Wine CLI use system Wine. To use specific versions:
+
+1. Modify Dockerfile to add Wine HQ repository:
+```dockerfile
+RUN wget -nc https://dl.winehq.org/wine-builds/winehq.key && \
+    apt-key add winehq.key && \
+    add-apt-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'
+```
+
+2. Install specific version:
+```dockerfile
+RUN apt-get install -y --install-recommends winehq-stable
+```
+
+### Persistent Wine Configuration
+
+Wine prefix is at `/root/.wine` in the container. For persistence between Studio sessions, consider:
+- Mounting an EBS volume to `/root/.wine`
+- Using Wine's export feature before session ends
+- Storing complete Wine prefix in S3
+
+---
 
 ## Resources
 
-- [Bottles Documentation](https://docs.usebottles.com/)
-- [Seqera Studios Documentation](https://docs.seqera.io/platform-cloud/studios/custom-envs)
-- [Wine HQ](https://www.winehq.org/)
+- [Wine Documentation](https://www.winehq.org/documentation)
+- [WineHQ AppDB](https://appdb.winehq.org/) - Check app compatibility
+- [Winetricks](https://wiki.winehq.org/Winetricks)
+- [Seqera Studios Docs](https://docs.seqera.io/platform-cloud/studios/custom-envs)
 - [Custom Studios Examples](https://github.com/seqeralabs/custom-studios-examples)
+
+---
 
 ## Contributing
 
-To improve this container:
-- Optimize desktop startup time
-- Add more pre-configured Wine versions
-- Improve graphics performance
-- Add common Windows dependencies pre-installed
+Improvements welcome:
+- Better Wine configuration defaults
+- Additional pre-installed components
+- Performance optimizations
+- Better Bottles/Flatpak installation
+
+---
 
 ## License
 
-This Dockerfile is provided as-is for use with Seqera Studios. Bottles, Wine, and other components maintain their respective licenses.
+This Dockerfile is provided as-is for use with Seqera Studios. Wine and other components maintain their respective licenses.

@@ -3,7 +3,7 @@
 # This uses noVNC to provide web-based access to the Bottles GUI
 
 # Stage 1: Get Seqera Connect client
-ARG CONNECT_CLIENT_VERSION=0.9
+ARG CONNECT_CLIENT_VERSION=0.8
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Stage 2: Main image with Bottles and desktop environment
@@ -34,13 +34,21 @@ RUN apt-get update && apt-get install -y \
     # Additional utilities
     xdg-utils \
     procps \
+    # Update flatpak to latest
+    && flatpak update -y || true \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Flathub repository
-RUN flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+# Add Flathub repository and update
+RUN flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo && \
+    flatpak update --appstream || true
 
-# Install Bottles via Flatpak
-RUN flatpak install -y flathub com.usebottles.bottles
+# Install Bottles via Flatpak (try different approaches)
+# First try: standard installation
+RUN flatpak install --system -y --noninteractive flathub com.usebottles.bottles || \
+    # Fallback: try with full app ID
+    flatpak install --system -y --noninteractive --or-update flathub com.usebottles.bottles || \
+    # If that fails, at least install Wine for manual use
+    (apt-get update && apt-get install -y wine wine64 winetricks && rm -rf /var/lib/apt/lists/*)
 
 # Set up VNC
 RUN mkdir -p ~/.vnc && \
