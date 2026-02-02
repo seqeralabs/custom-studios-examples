@@ -62,12 +62,12 @@ Or build manually:
 
 ```bash
 # Bottles GUI
-docker build --build-arg CONNECT_CLIENT_VERSION=0.8 \
+docker build --build-arg CONNECT_CLIENT_VERSION=0.9 \
   -t your-registry/studios-bottles:latest \
   -f Dockerfile.bottles .
 
 # Wine CLI
-docker build --build-arg CONNECT_CLIENT_VERSION=0.8 \
+docker build --build-arg CONNECT_CLIENT_VERSION=0.9 \
   -t your-registry/studios-wine:latest \
   -f Dockerfile.wine-simple .
 ```
@@ -105,7 +105,7 @@ When you launch this Studio, you'll access a full Linux desktop through your bro
 
 ```bash
 docker build \
-  --build-arg CONNECT_CLIENT_VERSION=0.8 \
+  --build-arg CONNECT_CLIENT_VERSION=0.9 \
   -t your-registry/bottles-studios:latest \
   -f Dockerfile.bottles \
   .
