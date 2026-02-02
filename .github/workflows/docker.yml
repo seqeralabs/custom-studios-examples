@@ -43,7 +43,10 @@ jobs:
           { name: 'streamlit', path: './streamlit' },
           { name: 'cellxgene', path: './cellxgene' },
           { name: 'shiny', path: './shiny-simple-example' },
-          { name: 'marimo', path: './marimo' }
+          { name: 'marimo', path: './marimo' },
+          { name: 'napari', path: './kasmVNC/napari' },
+          { name: 'qupath', path: './kasmVNC/qupath' },
+          { name: 'cellprofiler', path: './kasmVNC/cellprofiler' }
         ]
       fail-fast: false
 
