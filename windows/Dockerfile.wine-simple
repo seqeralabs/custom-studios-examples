@@ -1,0 +1,137 @@
+# Dockerfile for Bottles in Seqera Studios
+# Bottles is a GUI application for running Windows software on Linux via Wine
+# This uses noVNC to provide web-based access to the Bottles GUI
+
+# Stage 1: Get Seqera Connect client
+ARG CONNECT_CLIENT_VERSION=0.9
+FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
+
+# Stage 2: Main image with Bottles and desktop environment
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    # Desktop environment (lightweight)
+    xfce4 \
+    xfce4-terminal \
+    dbus-x11 \
+    # VNC server
+    tigervnc-standalone-server \
+    tigervnc-common \
+    # noVNC for web access
+    novnc \
+    websockify \
+    # Wine dependencies
+    software-properties-common \
+    wget \
+    gnupg2 \
+    ca-certificates \
+    # Flatpak for Bottles installation
+    flatpak \
+    # Additional utilities
+    xdg-utils \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Flathub repository
+RUN flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# Install Bottles via Flatpak
+RUN flatpak install -y flathub com.usebottles.bottles
+
+# Set up VNC
+RUN mkdir -p ~/.vnc && \
+    echo "password" | vncpasswd -f > ~/.vnc/passwd && \
+    chmod 600 ~/.vnc/passwd
+
+# Configure Xfce to be VNC-friendly
+RUN mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-desktop" version="1.0">\n\
+  <property name="backdrop" type="empty">\n\
+    <property name="screen0" type="empty">\n\
+      <property name="monitor0" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="color-style" type="int" value="0"/>\n\
+          <property name="image-style" type="int" value="0"/>\n\
+        </property>\n\
+      </property>\n\
+    </property>\n\
+  </property>\n\
+</channel>' > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
+
+# Create startup script for VNC and noVNC
+RUN mkdir -p /app
+COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
+RUN /usr/bin/connect-client --install
+
+# Create startup script with proper signal handling
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Signal handler for graceful shutdown\n\
+cleanup() {\n\
+    echo "Shutting down..."\n\
+    kill $NOVNC_PID 2>/dev/null || true\n\
+    vncserver -kill :1 2>/dev/null || true\n\
+    exit 0\n\
+}\n\
+trap cleanup SIGTERM SIGINT\n\
+\n\
+# Set display\n\
+export DISPLAY=:1\n\
+\n\
+# Kill any existing VNC servers\n\
+vncserver -kill :1 2>/dev/null || true\n\
+\n\
+# Start VNC server\n\
+echo "Starting VNC server on display :1"\n\
+vncserver :1 -geometry 1920x1080 -depth 24 -localhost no -SecurityTypes None\n\
+\n\
+# Wait for VNC to start\n\
+sleep 3\n\
+\n\
+# Start Xfce session on the VNC display\n\
+echo "Starting Xfce desktop environment"\n\
+DISPLAY=:1 startxfce4 &\n\
+XFCE_PID=$!\n\
+\n\
+# Wait for desktop to initialize\n\
+sleep 5\n\
+\n\
+# Create a desktop shortcut for Bottles\n\
+mkdir -p ~/Desktop\n\
+echo "[Desktop Entry]\n\
+Version=1.0\n\
+Type=Application\n\
+Name=Bottles\n\
+Comment=Run Windows Software\n\
+Exec=flatpak run com.usebottles.bottles\n\
+Icon=com.usebottles.bottles\n\
+Terminal=false\n\
+Categories=Utility;" > ~/Desktop/bottles.desktop\n\
+chmod +x ~/Desktop/bottles.desktop\n\
+\n\
+# Start noVNC\n\
+echo "Starting noVNC web interface on port $CONNECT_TOOL_PORT"\n\
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen $CONNECT_TOOL_PORT &\n\
+NOVNC_PID=$!\n\
+\n\
+echo "Bottles Studio ready! Access via your browser."\n\
+echo "To launch Bottles, double-click the Bottles icon on the desktop or run: flatpak run com.usebottles.bottles"\n\
+\n\
+# Keep the script running and wait for signals\n\
+wait $NOVNC_PID' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Set display environment variable
+ENV DISPLAY=:1
+
+# Set connect as entrypoint
+ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
+
+# Start the application
+CMD ["/bin/bash", "/app/start.sh"]

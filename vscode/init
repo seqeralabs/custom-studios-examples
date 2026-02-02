@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+_term() {
+  echo "stopping docker service"
+  service docker stop 2>/dev/null
+  echo "terminating vscode $child on SIGTERM"
+  kill -TERM "$child" 2>/dev/null
+}
+_int() {
+  echo "stopping docker service"
+  service docker stop 2>/dev/null
+  echo "terminating vscode $child on SIGINT"
+  kill -INT "$child" 2>/dev/null
+}
+
+trap _term SIGTERM
+trap _int SIGINT
+
+source /usr/local/bin/_activate_current_env.sh
+# automatically initialize all future (bash) shells, so that micromamba environments can be activated and deactivated
+micromamba shell init --shell bash --root-prefix=~/micromamba
+
+service docker start
+
+if [ -n "$CONNECT_TOOL_PATH_PREFIX" ]; then
+  VSCODE_BASE_PATH="--server-base-path=$CONNECT_TOOL_PATH_PREFIX"
+else
+  VSCODE_BASE_PATH=""
+fi
+
+/home/.vscode/bin/openvscode-server \
+    --without-connection-token \
+    --host 0.0.0.0 \
+    --port $CONNECT_TOOL_PORT \
+    --default-folder '/workspace' \
+    --disable-workspace-trust \
+    $VSCODE_BASE_PATH &
+
+child=$!
+wait "$child"
+echo "exited vscode: $child"

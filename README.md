@@ -9,6 +9,8 @@ This repository contains example Dockerfiles and configurations for custom Seqer
 - [Streamlit](streamlit/README.md) - MultiQC visualization using Streamlit
 - [Shiny](shiny-simple-example/README.md) - Interactive data visualization with R Shiny
 - [TTYD](ttyd/README.md) - Interactive web-based terminal with bioinformatics tools
+- [VSCode](vscode/README.md) - Open source fork of VSCode IDE
+- [Windows](windows/README.md) - Windows using [Bottles (Rust)](https://docs.usebottles.com/) or [Wine CLI](https://www.winehq.org/)
 
 ## Prerequisites
 
@@ -79,6 +81,7 @@ When deploying to Seqera Studios, you can configure environment variables in the
   - Example-specific features and usage
   - Data format requirements
   - Customization options
+- [Seqera Blog Post](https://seqera.io/blog/deploy-custom-apps-studios/)
 
 ## Contributing
 
@@ -88,5 +91,3 @@ Feel free to contribute new examples or improvements to existing ones. Each exam
 - Maintain consistency with common features
 - Provide clear prerequisites and deployment instructions
 - Include example data or clear data requirements
-
-<!-- TODO Add a link to the blog post -->
