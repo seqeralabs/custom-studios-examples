@@ -23,12 +23,12 @@ jobs:
 
     steps:
       # TODO: Enable once GHCR_TOKEN has delete:packages scope
-      - name: Delete PR image for ${{ matrix.container.name }}
+      - name: Delete PR image for ${{ matrix.container.name }}-dev
         if: false
         env:
           GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CONTAINER_NAME: ${{ matrix.container.name }}
+          CONTAINER_NAME: ${{ matrix.container.name }}-dev
         run: |
           PACKAGE_NAME="custom-studios-examples/${CONTAINER_NAME}"
           TAG="pr-${PR_NUMBER}"
