@@ -42,8 +42,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set JAVA_HOME for CellProfiler
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 
-# Install CellProfiler (requires numpy first)
-RUN pip3 install --no-cache-dir numpy && \
+# Install CellProfiler with compatible dependencies
+# Pin numpy<2 to avoid scikit-learn build issues with numpy 2.x
+RUN pip3 install --no-cache-dir "numpy<2" scikit-learn && \
     pip3 install --no-cache-dir cellprofiler
 
 # Single-app mode: application launches directly, no desktop
