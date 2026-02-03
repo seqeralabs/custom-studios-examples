@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
+# Test Build
 ARG CONNECT_CLIENT_VERSION=0.9
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
