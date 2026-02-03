@@ -22,9 +22,9 @@ ENV KASM_VNC_THREADS=4
 
 # Install system dependencies for CellProfiler
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.9 \
-    python3.9-venv \
-    python3.9-dev \
+    python3 \
+    python3-venv \
+    python3-dev \
     python3-pip \
     build-essential \
     default-jdk \
