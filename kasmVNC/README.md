@@ -8,7 +8,6 @@ This folder contains custom container images for running GUI desktop application
 |-------------|-------------|----------|
 | [QuPath](./qupath/) | Bioimage analysis for pathology | x86_64 only |
 | [napari](./napari/) | Python-based multi-dimensional image viewer | x86_64, arm64 |
-| [CellProfiler](./cellprofiler/) | Cell image analysis software | x86_64 only |
 
 ## Common Architecture
 
@@ -20,7 +19,7 @@ All KasmVNC images share the same architecture:
 │  (Ubuntu Jammy + KasmVNC server)            │
 ├─────────────────────────────────────────────┤
 │  Application Layer                          │
-│  (QuPath / napari / CellProfiler)           │
+│  (QuPath / napari)                          │
 ├─────────────────────────────────────────────┤
 │  Seqera Studios Integration                 │
 │  (connect-client + Fusion filesystem)       │
@@ -53,9 +52,6 @@ cd qupath && docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERS
 
 # napari
 cd napari && docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t kasmvnc-napari .
-
-# CellProfiler
-cd cellprofiler && docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t kasmvnc-cellprofiler .
 ```
 
 ## Local Testing
