@@ -60,9 +60,8 @@ LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
 # Copy connect-client from the first stage
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 
-# Install connect-client and set tool identifier
+# Install connect-client
 RUN /usr/bin/connect-client --install
-RUN /usr/bin/connect-client --setToolIdentifier kasmvnc
 
 # Seqera Studios entrypoint (connect-client handles fusion filesystem)
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
