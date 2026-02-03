@@ -43,8 +43,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 # Install CellProfiler with compatible dependencies
+# Upgrade pip first to ensure it finds pre-built wheels (e.g., wxPython)
 # Pin numpy<2 to avoid scikit-learn build issues with numpy 2.x
-RUN pip3 install --no-cache-dir "numpy<2" scikit-learn && \
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip3 install --no-cache-dir "numpy<2" scikit-learn && \
     pip3 install --no-cache-dir cellprofiler
 
 # Single-app mode: application launches directly, no desktop
