@@ -39,7 +39,7 @@ jobs:
       - name: Define container matrix
         id: set-matrix
         run: |
-          echo 'matrix={"container":[{"name":"ttyd","path":"./ttyd"},{"name":"streamlit","path":"./streamlit"},{"name":"cellxgene","path":"./cellxgene"},{"name":"shiny","path":"./shiny-simple-example"},{"name":"marimo","path":"./marimo"}]}' >> "$GITHUB_OUTPUT"
+          echo 'matrix={"container":[{"name":"ttyd","path":"./ttyd"},{"name":"streamlit","path":"./streamlit"},{"name":"cellxgene","path":"./cellxgene"},{"name":"shiny","path":"./shiny-simple-example"},{"name":"marimo","path":"./marimo"},{"name":"napari","path":"./kasmVNC/napari"},{"name":"qupath","path":"./kasmVNC/qupath"},{"name":"cellprofiler","path":"./kasmVNC/cellprofiler"}]}' >> "$GITHUB_OUTPUT"
 
   build-and-push:
     runs-on: ubuntu-latest
