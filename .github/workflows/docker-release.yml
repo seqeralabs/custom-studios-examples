@@ -1,0 +1,100 @@
+name: Release Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      container:
+        description: 'Container to release'
+        required: true
+        type: choice
+        options:
+          - ttyd
+          - streamlit
+          - cellxgene
+          - shiny
+          - marimo
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
+      connect_client_version:
+        description: 'Version of connect-client to use (e.g., 0.9)'
+        required: false
+        type: string
+        default: '0.9'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set container path
+        id: container
+        run: |
+          case "${{ inputs.container }}" in
+            ttyd) echo "path=./ttyd" >> "$GITHUB_OUTPUT" ;;
+            streamlit) echo "path=./streamlit" >> "$GITHUB_OUTPUT" ;;
+            cellxgene) echo "path=./cellxgene" >> "$GITHUB_OUTPUT" ;;
+            shiny) echo "path=./shiny-simple-example" >> "$GITHUB_OUTPUT" ;;
+            marimo) echo "path=./marimo" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.container }}
+          tags: |
+            type=raw,value=${{ inputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=Custom Studios Example Container for ${{ inputs.container }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push ${{ inputs.container }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.container.outputs.path }}
+          push: true
+          platforms: linux/amd64
+          build-args: |
+            CONNECT_CLIENT_VERSION=${{ inputs.connect_client_version || '0.9' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ inputs.container }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.container }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.container }}/${{ inputs.version }}
+          name: ${{ inputs.container }} ${{ inputs.version }}
+          body: |
+            ## ${{ inputs.container }} ${{ inputs.version }}
+
+            Image: `${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.container }}:${{ inputs.version }}`
+
+            ```bash
+            docker pull ${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.container }}:${{ inputs.version }}
+            ```
+          generate_release_notes: true

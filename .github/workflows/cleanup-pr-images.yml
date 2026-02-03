@@ -1,0 +1,59 @@
+name: Cleanup PR Images
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        container:
+          - name: ttyd
+          - name: streamlit
+          - name: cellxgene
+          - name: shiny
+          - name: marimo
+
+    steps:
+      # TODO: Enable once GHCR_TOKEN has delete:packages scope
+      - name: Delete PR image for ${{ matrix.container.name }}
+        if: false
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CONTAINER_NAME: ${{ matrix.container.name }}
+        run: |
+          PACKAGE_NAME="custom-studios-examples/${CONTAINER_NAME}"
+          TAG="pr-${PR_NUMBER}"
+
+          echo "Checking for $PACKAGE_NAME:$TAG..."
+
+          # Get all versions of the package
+          VERSIONS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/orgs/seqeralabs/packages/container/${PACKAGE_NAME}/versions" \
+            --paginate 2>/dev/null || echo "[]")
+
+          # Find the version ID for our PR tag
+          VERSION_ID=$(echo "$VERSIONS" | jq -r ".[] | select(.metadata.container.tags[] == \"$TAG\") | .id" 2>/dev/null || echo "")
+
+          if [[ -n "$VERSION_ID" ]]; then
+            echo "Deleting $PACKAGE_NAME:$TAG (version ID: $VERSION_ID)..."
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/orgs/seqeralabs/packages/container/${PACKAGE_NAME}/versions/${VERSION_ID}" \
+              && echo "Successfully deleted $PACKAGE_NAME:$TAG" \
+              || echo "Failed to delete $PACKAGE_NAME:$TAG (may not exist)"
+          else
+            echo "No image found for $PACKAGE_NAME:$TAG, skipping"
+          fi
