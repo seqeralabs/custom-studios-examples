@@ -61,6 +61,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: write
 
     strategy:
       fail-fast: false
@@ -84,9 +85,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.container.name }}-dev
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/development
           tags: |
-            type=ref,event=pr,prefix=pr-
+            type=ref,event=pr,prefix=${{ matrix.container.name }}-pr
 
       - name: Build and push ${{ matrix.container.name }}
         uses: docker/build-push-action@v5
@@ -98,3 +99,122 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.container.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.container.name }}
+
+      - name: Get image reference for scan
+        id: scanref
+        run: |
+          echo "ref=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
+
+      - name: Run security scan
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: ${{ steps.scanref.outputs.ref }}
+          format: "table"
+          output: "trivy-results.txt"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+
+      - name: Display security scan results
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Results - ${{ matrix.container.name }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No security scan results found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-scan-${{ matrix.container.name }}-${{ github.run_id }}
+          path: trivy-results.txt
+          retention-days: 30
+
+      - name: Generate build summary
+        if: always()
+        run: |
+          echo "## 🐳 Build Summary - ${{ matrix.container.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`${{ env.REGISTRY }}/${{ github.repository }}/development\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: \`${{ matrix.container.name }}-pr${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.head_ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const imageName = '${{ matrix.container.name }}';
+            const imageTag = `${{ env.REGISTRY }}/${{ github.repository }}/development:${imageName}-pr${{ github.event.pull_request.number }}`;
+            const commentId = `build-results-${imageName}`;
+
+            let securityStatus = '✅ Security scan completed';
+            try {
+              if (fs.existsSync('trivy-results.txt')) {
+                const results = fs.readFileSync('trivy-results.txt', 'utf8');
+                const lines = results.split('\n');
+                const criticalCount = lines.filter(line => line.includes('CRITICAL')).length;
+                const highCount = lines.filter(line => line.includes('HIGH')).length;
+                const mediumCount = lines.filter(line => line.includes('MEDIUM')).length;
+
+                if (criticalCount > 0 || highCount > 0) {
+                  securityStatus = `⚠️ Found ${criticalCount} critical, ${highCount} high, ${mediumCount} medium vulnerabilities`;
+                } else if (mediumCount > 0) {
+                  securityStatus = `✅ ${mediumCount} medium vulnerabilities found`;
+                } else {
+                  securityStatus = '✅ No vulnerabilities found';
+                }
+              }
+            } catch (e) {
+              securityStatus = '⚠️ Security scan results could not be parsed';
+            }
+
+            const output = `## 🐳 Docker Build Results - ${imageName}
+
+            ✅ Docker image built successfully
+
+            | Property | Value |
+            |----------|-------|
+            | **Image** | \`${imageTag}\` |
+            | **Branch** | ${{ github.head_ref }} |
+            | **Commit** | \`${{ github.sha }}\` |
+            | **Security** | ${securityStatus} |
+
+            \`\`\`bash
+            docker pull ${imageTag}
+            \`\`\`
+
+            📁 Download the full security scan report from the workflow artifacts.
+
+            <!-- ${commentId} -->`;
+
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes(`<!-- ${commentId} -->`)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                comment_id: existingComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            }
