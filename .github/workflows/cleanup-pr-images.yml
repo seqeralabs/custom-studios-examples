@@ -22,17 +22,17 @@ jobs:
 
           echo "Cleaning up images for PR #${PR_NUMBER}..."
 
-          # Get all versions of the package
+          # Get all versions of the package (merge paginated arrays)
           VERSIONS=$(gh api \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/orgs/seqeralabs/packages/container/${PACKAGE_NAME}/versions" \
-            --paginate 2>/dev/null || echo "[]")
+            --paginate 2>/dev/null | jq -s 'add // []')
 
           # Find all versions with tags ending in -pr<PR_NUMBER>
           echo "$VERSIONS" | jq -r --arg pr "pr${PR_NUMBER}" '
             .[] |
-            select(.metadata.container.tags[] | endswith("-" + $pr)) |
+            select(.metadata.container.tags[]? | endswith("-" + $pr)) |
             .id
           ' | while read -r VERSION_ID; do
             if [[ -n "$VERSION_ID" ]]; then

@@ -32,6 +32,10 @@ jobs:
               - 'shiny-simple-example/**'
             marimo:
               - 'marimo/**'
+            napari:
+              - 'kasmVNC/napari/**'
+            qupath:
+              - 'kasmVNC/qupath/**'
 
       - name: Set matrix
         id: set-matrix
@@ -51,6 +55,12 @@ jobs:
           fi
           if [[ "${{ steps.changes.outputs.marimo }}" == "true" ]]; then
             CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"marimo","path":"./marimo"}]')
+          fi
+          if [[ "${{ steps.changes.outputs.napari }}" == "true" ]]; then
+            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"napari","path":"./kasmVNC/napari"}]')
+          fi
+          if [[ "${{ steps.changes.outputs.qupath }}" == "true" ]]; then
+            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"qupath","path":"./kasmVNC/qupath"}]')
           fi
           echo "matrix={\"container\":$CONTAINERS}" >> "$GITHUB_OUTPUT"
 
