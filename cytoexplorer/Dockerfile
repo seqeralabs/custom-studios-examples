@@ -27,40 +27,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies for CytoExploreR
 RUN apt-get update && apt-get install --no-install-recommends -y \
     libprotobuf-dev \
-    autoconf \
-    automake \
-    libtool \
     libxml2-dev \
     libhdf5-dev \
     zlib1g-dev \
     libpng-dev \
-    tcl \
     wget \
-    unzip \
-    make \
-    g++ \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Download and install FFTW (required for FIt-SNE)
-RUN wget http://www.fftw.org/fftw-3.3.8.tar.gz && \
-    tar -zxvf fftw-3.3.8.tar.gz && \
-    rm -rf fftw-3.3.8.tar.gz && \
-    cd fftw-3.3.8 && \
-    ./configure && \
-    make && \
-    make install && \
-    cd / && \
-    rm -rf fftw-3.3.8
-
-# Install FIt-SNE (dimensionality reduction)
-RUN cd / && \
-    wget --no-check-certificate -O FIt-SNE.zip https://github.com/KlugerLab/FIt-SNE/archive/master.zip && \
-    unzip FIt-SNE.zip && \
-    rm -rf FIt-SNE.zip && \
-    cd FIt-SNE-master && \
-    g++ -std=c++11 -O3 src/sptree.cpp src/tsne.cpp src/nbodyfft.cpp -o bin/fast_tsne -pthread -lfftw3 -lm -Wno-address-of-packed-member && \
-    cd / && \
-    mv /FIt-SNE-master /home/rstudio/.FIt-SNE
 
 # Install R package dependencies
 RUN R -e "install.packages('remotes')" && \
@@ -80,6 +52,9 @@ RUN R -e "install.packages('remotes')" && \
 
 # Setup workspace
 WORKDIR /home/rstudio
+
+# Expose the port (will be set by CONNECT_TOOL_PORT)
+EXPOSE $CONNECT_TOOL_PORT
 
 # Add connect-client version label for capability tracking
 ARG CONNECT_CLIENT_VERSION

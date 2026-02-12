@@ -44,7 +44,6 @@ For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-stu
 - Compatible with both local Docker testing and Seqera Studios
 - Automatic data mounting via datalinks
 - Full R/RStudio environment with flow cytometry tools
-- Support for FIt-SNE dimensionality reduction
 
 > [!NOTE]
 > For common features shared across all examples, see the [main README](https://github.com/seqeralabs/custom-studios-examples#common-features).
@@ -84,7 +83,7 @@ Or use the provided build script:
 ./build.sh
 ```
 
-Build times: Approximately 15-20 minutes due to R package compilation and dependency installation.
+Build times: Approximately 10-15 minutes due to R package compilation and dependency installation.
 
 ## Local Testing
 
@@ -152,11 +151,11 @@ For more examples, see the [CytoExploreR documentation](https://dillonhammill.gi
 
 - The container uses RStudio Server (rocker/rstudio) as the base image
 - CytoExploreR and all dependencies are installed from source during build
-- FIt-SNE is compiled for dimensionality reduction capabilities
 - The Dockerfile uses a multi-stage build to include the connect-client
 - The container is built for linux/amd64 platform compatibility
 - Default RStudio credentials: username `rstudio`, password `rstudio` (customizable via PASSWORD environment variable)
-- Build time is approximately 15-20 minutes due to R package compilation
+- Build time is approximately 10-15 minutes due to R package compilation
+- FIt-SNE is not included to simplify the build (CytoExploreR supports other dimensionality reduction methods like UMAP, t-SNE via Rtsne, PCA)
 
 > [!NOTE]
 > For common technical notes, see the [main README](https://github.com/seqeralabs/custom-studios-examples#common-features).
