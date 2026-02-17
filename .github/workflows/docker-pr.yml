@@ -32,6 +32,8 @@ jobs:
               - 'shiny-simple-example/**'
             marimo:
               - 'marimo/**'
+            cytoexplorer:
+              - 'cytoexplorer/**'
 
       - name: Set matrix
         id: set-matrix
@@ -51,6 +53,9 @@ jobs:
           fi
           if [[ "${{ steps.changes.outputs.marimo }}" == "true" ]]; then
             CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"marimo","path":"./marimo"}]')
+          fi
+          if [[ "${{ steps.changes.outputs.cytoexplorer }}" == "true" ]]; then
+            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"cytoexplorer","path":"./cytoexplorer"}]')
           fi
           echo "matrix={\"container\":$CONTAINERS}" >> "$GITHUB_OUTPUT"
 
