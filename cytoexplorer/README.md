@@ -30,19 +30,7 @@ This example demonstrates how to create a custom Studios container running a Shi
 docker build --platform linux/amd64 -t flowcyto-shiny-app:latest .
 ```
 
-### 2. Push to Container Registry
-
-```bash
-# Example: GitHub Container Registry
-docker tag flowcyto-shiny-app:latest ghcr.io/YOUR_USERNAME/flowcyto-shiny-app:latest
-docker push ghcr.io/YOUR_USERNAME/flowcyto-shiny-app:latest
-
-# Or Docker Hub
-docker tag flowcyto-shiny-app:latest YOUR_USERNAME/flowcyto-shiny-app:latest
-docker push YOUR_USERNAME/flowcyto-shiny-app:latest
-```
-
-### 3. Configure in Seqera Platform
+### 2. Configure in Seqera Platform
 
 1. Navigate to your workspace in Seqera Platform
 2. Go to **Studios** → **Add Studio**
