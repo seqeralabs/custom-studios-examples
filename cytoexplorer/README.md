@@ -1,169 +1,170 @@
-# CytoExploreR Studio Environment
+# Flow Cytometry Analysis with Shiny
 
-This example provides a custom container image for running [CytoExploreR](https://github.com/DillonHammill/CytoExploreR), an interactive flow cytometry analysis platform, in RStudio Server as a Studio environment in Seqera Platform.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Files](#files)
-- [Prerequisites](#prerequisites)
-- [Building the Container](#building-the-container)
-- [Local Testing](#local-testing)
-- [Using in Seqera Studios](#using-in-seqera-studios)
-- [Using CytoExploreR](#using-cytoexplorer)
-- [Notes](#notes)
-- [References](#references)
+An interactive flow cytometry data analysis application for Seqera Platform Studios.
 
 ## Overview
 
-This container is designed for use as a [custom Studio environment](https://docs.seqera.io/platform-cloud/studios/custom-envs) in Seqera Platform. It provides an interactive RStudio Server interface for flow cytometry data analysis using the CytoExploreR package.
-
-CytoExploreR is a comprehensive R package for interactive cytometry data analysis developed by Dillon Hammill. It provides:
-- Interactive gating with manual gate drawing and editing
-- Comprehensive visualization and plotting functions
-- Automatic spillover compensation
-- Dimensionality reduction (PCA, t-SNE, UMAP, EmbedSOM)
-- Integration with openCyto and FlowJo workspaces
-- User-friendly interface designed for users with no coding experience
-
-## Docker Image
-
-The container image is available at:
-```
-ghcr.io/seqeralabs/custom-studios-examples/cytoexplorer:latest
-```
-
-For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/cytoexplorer:v1.0.0`).
+This example demonstrates how to create a custom Studios container running a Shiny application for flow cytometry data analysis. The app provides an interactive interface for visualizing and analyzing FCS files with support for multi-sample comparisons and data export.
 
 ## Features
 
-- RStudio Server browser-based interface
-- CytoExploreR pre-installed with all dependencies
-- Interactive flow cytometry data analysis and gating
-- Compatible with both local Docker testing and Seqera Studios
-- Automatic data mounting via datalinks
-- Full R/RStudio environment with flow cytometry tools
+- **Interactive Visualization**: 2D scatter plots with customizable channels
+- **Multi-Sample Analysis**: View up to 9 samples simultaneously in a grid layout
+- **File Upload**: Support for standard FCS file formats (2.0, 3.0, 3.1)
+- **Sample Data**: Includes test FCS files for quick demonstration
+- **Data Export**: Download plots as PNG and data as CSV
 
-> [!NOTE]
-> For common features shared across all examples, see the [main README](https://github.com/seqeralabs/custom-studios-examples#common-features).
+## Technology Stack
 
-## Files
+- **R 4.3** with Bioconductor packages
+- **flowCore** & **flowWorkspace**: Flow cytometry data handling
+- **Shiny**: Interactive web interface
+- **ggplot2**: Data visualization
+- **Seqera connect-client**: Studios integration
 
-- `Dockerfile`: Container definition using multi-stage build
-- `build.sh`: Build script with registry push support
-- `README.md`: This documentation file
-- `QUICKSTART.md`: Quick reference guide
-- `.dockerignore`: Files to exclude from Docker build context
-- `.gitignore`: Git ignore patterns
+## Quick Start
 
-## Prerequisites
-
-> [!NOTE]
-> For common prerequisites, see the [main README](https://github.com/seqeralabs/custom-studios-examples#prerequisites).
-
-Additional requirements specific to this example:
-- Flow cytometry data files (FCS format)
-- Recommended: 4 CPU cores, 8GB RAM minimum for analysis
-
-## Building the Container
-
-> [!IMPORTANT]
-> You must provide the `CONNECT_CLIENT_VERSION` build argument when building the container.
-
-To build the container locally:
+### 1. Build the Container
 
 ```bash
-docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t cytoexplorer-example .
+docker build --platform linux/amd64 -t flowcyto-shiny-app:latest .
 ```
 
-Or use the provided build script:
+### 2. Push to Container Registry
 
 ```bash
-./build.sh
+# Example: GitHub Container Registry
+docker tag flowcyto-shiny-app:latest ghcr.io/YOUR_USERNAME/flowcyto-shiny-app:latest
+docker push ghcr.io/YOUR_USERNAME/flowcyto-shiny-app:latest
+
+# Or Docker Hub
+docker tag flowcyto-shiny-app:latest YOUR_USERNAME/flowcyto-shiny-app:latest
+docker push YOUR_USERNAME/flowcyto-shiny-app:latest
 ```
 
-Build times: Approximately 10-15 minutes due to R package compilation and dependency installation.
+### 3. Configure in Seqera Platform
 
-## Local Testing
+1. Navigate to your workspace in Seqera Platform
+2. Go to **Studios** → **Add Studio**
+3. Configure:
+   - **Name**: Flow Cytometry Analysis
+   - **Container Image**: `ghcr.io/YOUR_USERNAME/flowcyto-shiny-app:latest`
+   - **Compute Environment**: Select your environment
+   - **Instance Type**: Minimum 2 CPU / 8GB RAM
+4. Launch the Studio
 
-To test the app locally, you need to override the entrypoint:
+## Container Architecture
 
-```bash
-docker run -p 8787:8787 -e PASSWORD=test --entrypoint /usr/lib/rstudio-server/bin/rserver cytoexplorer-example --server-daemonize=0 --www-port=8787 --www-address=0.0.0.0
+The Dockerfile demonstrates:
+
+- **Multi-stage build**: Pulling Seqera connect-client binary
+- **Conda environment management**: Using micromamba for lightweight package management
+- **Bioconductor integration**: Installing specialized bioinformatics packages
+- **Proper entrypoint configuration**: Using connect-client for Studios integration
+- **Dynamic port binding**: Via `CONNECT_TOOL_PORT` environment variable
+
+## Files Structure
+
+```
+.
+├── Dockerfile          # Container definition with R and Bioconductor packages
+├── app.R              # Shiny application for flow cytometry analysis
+├── test_data/         # Sample FCS files for testing
+│   ├── sample1_control.fcs
+│   ├── sample2_treated.fcs
+│   └── sample3_alt.fcs
+└── README.md
 ```
 
-The RStudio Server will be available at http://localhost:8787
+## Usage
 
-Default credentials:
-- **Username:** `rstudio`
-- **Password:** `test` (or whatever you set with `-e PASSWORD=yourpassword`)
+### Using Test Data
 
-## Using in Seqera Studios
+The app includes three sample FCS files in the `test_data/` directory for immediate testing:
+- Control sample
+- Treated sample
+- Alternative condition sample
 
-> [!NOTE]
-> For the common deployment process, see the [main README](https://github.com/seqeralabs/custom-studios-examples#deploying-to-seqera-studios).
+### Uploading Custom Data
 
-Additional steps specific to this example:
-1. Follow the common deployment process
-2. Configure compute resources:
-   - Minimum: 4 CPU cores, 8GB RAM
-   - Recommended: 8 CPU cores, 16GB RAM for large datasets
-3. When mounting data, ensure to mount directories containing FCS files or other flow cytometry data using the **Mount data** option
-4. Set the `PASSWORD` environment variable to customize the RStudio login password (optional, defaults to `rstudio`)
+1. Click "Browse..." to select FCS files
+2. Upload one or more files (supports batch upload)
+3. Select sample from dropdown
+4. Choose X/Y channels for visualization
+5. Explore and export results
 
-### Data Access
+### Available Visualizations
 
-When using data links with Seqera Studios:
-1. Upload your flow cytometry data (e.g., `.fcs` files) to your S3 bucket
-2. Create a data link (e.g., `flow_data`) pointing to that S3 path
-3. The data will be available at `/workspace/data/flow_data/` in RStudio
-4. Access files in R using standard file paths
+- **Single Sample View**: Detailed 2D scatter plot with customizable axes
+- **Multi-Sample View**: 3x3 grid layout for comparing up to 9 samples
+- **Statistics Panel**: Event counts and channel information
 
-## Using CytoExploreR
+## System Requirements
 
-Once in RStudio:
+### Build Requirements
+- Docker with BuildKit support
+- ~5-10 minutes build time (due to R package compilation)
 
-```r
-# Load the package
-library(CytoExploreR)
+### Runtime Requirements
+- **Minimum**: 2 CPU, 8GB RAM
+- **Recommended**: 4 CPU, 16GB RAM (for large FCS files)
 
-# Load example data (included in package)
-data(Activation, package = "CytoExploreRData")
+## Customization
 
-# Setup experiment
-gs <- cyto_setup(Activation,
-                 gatingTemplate = "Activation-gatingTemplate.csv")
+### Adding R Packages
 
-# Interactive gating
-cyto_gate_draw(gs,
-               parent = "root",
-               alias = "Cells",
-               channels = c("FSC-A", "SSC-A"))
+Edit the Dockerfile to include additional packages:
 
-# View results
-cyto_plot(gs, parent = "Cells")
+```dockerfile
+RUN rm -rf /opt/conda/pkgs/*.lock && \
+    micromamba create -y -n flowcyto \
+    -c conda-forge \
+    -c bioconda \
+    r-base=4.3 \
+    r-shiny \
+    your-additional-package \
+    && micromamba clean --all --yes
 ```
 
-For more examples, see the [CytoExploreR documentation](https://dillonhammill.github.io/CytoExploreR/).
+### Modifying the Application
 
-## Notes
+Edit `app.R` to customize:
+- UI layout and styling
+- Analysis workflows
+- Visualization options
+- Export formats
 
-- The container uses RStudio Server (rocker/rstudio) as the base image
-- CytoExploreR and all dependencies are installed from source during build
-- The Dockerfile uses a multi-stage build to include the connect-client
-- The container is built for linux/amd64 platform compatibility
-- Default RStudio credentials: username `rstudio`, password `rstudio` (customizable via PASSWORD environment variable)
-- Build time is approximately 10-15 minutes due to R package compilation
-- FIt-SNE is not included to simplify the build (CytoExploreR supports other dimensionality reduction methods like UMAP, t-SNE via Rtsne, PCA)
+## Troubleshooting
 
-> [!NOTE]
-> For common technical notes, see the [main README](https://github.com/seqeralabs/custom-studios-examples#common-features).
+### Build Issues
 
-## References
+**Long build times**: R package compilation can take 5-10 minutes
+- Solution: Be patient, this is normal for Bioconductor packages
 
-- [CytoExploreR Documentation](https://dillonhammill.github.io/CytoExploreR/)
-- [CytoExploreR GitHub Repository](https://github.com/DillonHammill/CytoExploreR)
-- [Seqera Studios: Custom Environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
-- [RStudio Server](https://posit.co/products/open-source/rstudio-server/)
-- [Wave Documentation](https://docs.seqera.io/platform-cloud/wave/)
+**Package installation fails**:
+- Check network connectivity
+- Verify conda channel availability (conda-forge, bioconda)
+
+### Runtime Issues
+
+**App fails to load**:
+- Ensure minimum 8GB RAM is allocated
+- Check Seqera Platform logs for startup errors
+
+**Upload fails**:
+- Verify FCS file format is valid (2.0, 3.0, or 3.1)
+- Check file size limits in your compute environment
+
+## Resources
+
+- [Seqera Platform Documentation](https://docs.seqera.io/)
+- [flowCore Documentation](https://bioconductor.org/packages/flowCore/)
+- [Shiny Documentation](https://shiny.rstudio.com/)
+
+## License
+
+This example is provided as-is for use with Seqera Platform.
+
+---
+
+**Part of [Seqera Custom Studios Examples](https://github.com/seqeralabs/custom-studios-examples)**
