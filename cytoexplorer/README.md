@@ -101,9 +101,6 @@ The app includes three sample FCS files in the `test_data/` directory for immedi
 
 ## System Requirements
 
-### Build Requirements
-- Docker with BuildKit support
-- ~5-10 minutes build time (due to R package compilation)
 
 ### Runtime Requirements
 - **Minimum**: 2 CPU, 8GB RAM
