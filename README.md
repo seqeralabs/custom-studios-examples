@@ -1,92 +1,114 @@
 # Custom Studios Examples
 
-This repository contains example Dockerfiles and configurations for custom Seqera Studio applications. Each example demonstrates how to create and deploy different types of interactive applications in Seqera Studios.
+Example configurations for deploying custom [Seqera Studio](https://docs.seqera.io/platform-cloud/studios/overview) applications from a Git repository.
 
-## Available Examples
+> **Do not merge studio configurations into `master`!** Each studio has its own dedicated branch.
 
-- [Marimo](marimo/README.md) - A reactive Python notebook environment
-- [CellxGene](cellxgene/README.md) - Interactive single-cell data visualization
-- [Streamlit](streamlit/README.md) - MultiQC visualization using Streamlit
-- [Shiny](shiny-simple-example/README.md) - Interactive data visualization with R Shiny
-- [TTYD](ttyd/README.md) - Interactive web-based terminal with bioinformatics tools
+## Repository Structure
 
-## Prerequisites
+This repository uses a **branch-per-studio** model (similar to [nf-core/test-datasets](https://github.com/nf-core/test-datasets)). The `master` branch contains only this documentation. Each studio's configuration lives on its own branch with a `.seqera/` directory containing the `studio-config.yaml` and `Dockerfile` required for [launching Studios from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo).
 
-All examples in this repository require:
-- [Docker](https://www.docker.com/) installed
-- [Wave](https://docs.seqera.io/platform-cloud/wave/) configured in your Seqera Platform workspace
-- Access to a container registry (public or Amazon ECR) for pushing your images
+## Available Studios
 
-## Common Features
+| Branch | Studio | Description |
+|--------|--------|-------------|
+| [`marimo`](https://github.com/seqeralabs/custom-studios-examples/tree/marimo) | Marimo | Reactive Python notebook environment |
+| [`cellxgene`](https://github.com/seqeralabs/custom-studios-examples/tree/cellxgene) | CellxGene | Interactive single-cell data visualization |
+| [`streamlit`](https://github.com/seqeralabs/custom-studios-examples/tree/streamlit) | Streamlit | MultiQC visualization using Streamlit |
+| [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
+| [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
 
-All examples in this repository:
-- Are compatible with both local Docker testing and Seqera Studios
-- Use the required Seqera base image and connect-client
-- Include detailed setup and usage instructions
-- Support data mounting via datalinks in Studios
-- Are built for linux/amd64 platform compatibility
-- Use multi-stage builds to include the connect-client
-- Follow consistent container best practices
+## Quick Start: Launch from Git Repository
 
-## Deploying to Seqera Studios
+1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
+2. Select **Git repository** as the source
+3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
+4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `ttyd`)
+5. Select your compute environment
+6. Click **Add** then **Start**
 
-All examples follow the same deployment process:
+Each branch contains a `.seqera/` directory with:
+- `studio-config.yaml` — Studio configuration pointing to the Dockerfile
+- `Dockerfile` — Container definition with connect-client integration
+- Any supporting files required by the Dockerfile
 
-1. Select the **Studios** tab in your workspace
-2. Click **Add Studio**
-3. In the **General config** section:
-   - Select **Prebuilt container image** as the container template
-   - Enter your container image URI (e.g., `cr.seqera.io/scidev/your-example`)
-   - Set a **Studio name** and optional **Description**
-4. Configure compute resources in the **Compute and Data** section:
-   - Select your compute environment
-   - Adjust CPU, GPU, and memory allocations as needed
-   - Mount any required data using the **Mount data** option
-   - Configure environment variables if the example supports them (see [Environment Variables](#environment-variables) section)
-5. Review the configuration in the **Summary** section
-6. Click **Add and start** to create and launch the Studio
+## Alternative Deployment: Pre-built Images
+
+Each studio is also available as a pre-built container image:
+
+```
+ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
+ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
+ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
+ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
+ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
+```
+
+To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
+
+## Alternative Deployment: Wave CLI
+
+You can also build any studio with the [Wave CLI](https://docs.seqera.io/wave/):
+
+```bash
+# Clone only the branch you need
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
+
+# Build with Wave
+wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --tower-token "$TOWER_ACCESS_TOKEN"
+```
+
+## Cloning a Specific Studio
+
+Due to the branch-per-studio model, we recommend cloning only the branch you need:
+
+```bash
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
+```
+
+To add another branch later:
+
+```bash
+git remote set-branches --add origin <studio-name>
+git fetch
+```
 
 ## Environment Variables
 
-Some examples support environment variable configuration to customize data paths and application settings without modifying the container image. This makes those examples more flexible and reusable across different datasets and configurations.
+Some studios support environment variable configuration:
 
-### Examples with Environment Variables
+| Studio | Variable | Default | Description |
+|--------|----------|---------|-------------|
+| CellxGene | `DATASET_FILE` | `s3://cellxgene_datasets/pbmc3k.h5ad` | Path to .h5ad dataset |
+| CellxGene | `DATASET_TITLE` | `PBMCs 3k test dataset` | Display title |
+| CellxGene | `USER_DATA_DIR` | `/user-data/cellxgene` | User data storage |
+| CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations storage |
+| Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
 
-Only the following examples support environment variable configuration:
-- **CellxGene**: `DATASET_FILE`, `DATASET_TITLE` - Configure dataset path and display title
-- **Shiny**: `DATA_PATH` - Configure data file path with automatic cloud storage path conversion
+Studios without listed variables (Marimo, Streamlit, TTYD) work with their default configurations.
 
-### Examples without Environment Variables
+## Common Features
 
-These examples work with their default configurations and don't require environment variable setup:
-- **Marimo**: Interactive Python notebook environment
-- **Streamlit**: MultiQC visualization with web-based data loading interface
-- **TTYD**: Web-based terminal with pre-installed bioinformatics tools
-
-### Using Environment Variables in Seqera Studios
-
-When deploying to Seqera Studios, you can configure environment variables in the **Compute and Data** section:
-1. Expand the **Environment variables** section
-2. Add key-value pairs for the variables you want to customize
-3. The application will use these values instead of the defaults
+All studios in this repository:
+- Use the `.seqera/` directory convention for Git-based Studio deployment
+- Include the required Seqera `connect-client` for platform integration
+- Support data mounting via datalinks in Studios
+- Are built for `linux/amd64` platform compatibility
+- Use multi-stage Docker builds with connect-client
 
 ## Documentation
 
-- [Official documentation on building custom studio environments](https://docs.seqera.io/platform-cloud/studios/custom-envs#custom-containers)
-- Each example's README contains specific instructions for:
-  - Building and testing locally
-  - Required dependencies and configurations
-  - Example-specific features and usage
-  - Data format requirements
-  - Customization options
+- [Add a Studio from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
+- [Custom studio environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
+- [Wave CLI](https://docs.seqera.io/wave/)
+- [Deploying custom applications in Seqera Studios](https://seqera.io/blog/deploy-custom-apps-studios/)
 
 ## Contributing
 
-Feel free to contribute new examples or improvements to existing ones. Each example should:
-- Follow the established README structure
-- Include comprehensive documentation
-- Maintain consistency with common features
-- Provide clear prerequisites and deployment instructions
-- Include example data or clear data requirements
+To add a new studio:
 
-<!-- TODO Add a link to the blog post -->
+1. Create a new branch from an empty root (orphan branch): `git checkout --orphan <studio-name>`
+2. Add a `.seqera/` directory with `studio-config.yaml` and `Dockerfile`
+3. Add a `README.md` documenting the studio
+4. Push the branch
+5. Update this README on `master` to list the new studio
