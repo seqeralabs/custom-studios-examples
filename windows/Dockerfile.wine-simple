@@ -3,11 +3,15 @@
 # Simpler alternative to full Bottles GUI
 
 # Stage 1: Get Seqera Connect client
-ARG CONNECT_CLIENT_VERSION=0.8
+ARG CONNECT_CLIENT_VERSION=0.10
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Stage 2: Wine installation
 FROM ubuntu:22.04
+
+ARG CONNECT_CLIENT_VERSION
+LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
 
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -44,7 +48,7 @@ ENV DISPLAY=:0
 
 # Initialize Wine (creates default prefix)
 RUN wine64 wineboot --init && \
-    wineserver -w
+    wineserver -w || true
 
 # Copy Seqera Connect client
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client

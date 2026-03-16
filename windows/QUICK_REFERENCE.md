@@ -23,7 +23,7 @@
 ./build.sh both your-registry
 
 # Manual build
-docker build --build-arg CONNECT_CLIENT_VERSION=0.8 \
+docker build --build-arg CONNECT_CLIENT_VERSION=0.10 \
   -t TAG -f DOCKERFILE .
 ```
 

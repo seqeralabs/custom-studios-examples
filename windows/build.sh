@@ -5,7 +5,7 @@
 
 set -e
 
-CONNECT_VERSION="0.8"
+CONNECT_VERSION="0.10"
 DEFAULT_REGISTRY="your-registry"
 
 # Colors for output

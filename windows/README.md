@@ -74,7 +74,7 @@ If you're building on **Apple Silicon (ARM64)**, use the **Wine Desktop** option
 ./build.sh wine-desktop ghcr.io/myorg
 
 # Or build manually
-docker build --build-arg CONNECT_CLIENT_VERSION=0.8 \
+docker build --build-arg CONNECT_CLIENT_VERSION=0.10 \
   -t your-registry/studios-wine-desktop:latest \
   -f Dockerfile.wine-desktop .
 ```
