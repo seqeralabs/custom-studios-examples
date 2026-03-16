@@ -1,5 +1,4 @@
 # Simplified Wine + Desktop for Seqera Studios
-# Provides Wine in a web-accessible desktop (no Bottles dependency)
 
 # Stage 1: Get Seqera Connect client
 ARG CONNECT_CLIENT_VERSION=0.10
