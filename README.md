@@ -1,6 +1,8 @@
-# Custom Studios Examples
+# CytoExploreR Studio Environment
 
-This repository contains example Dockerfiles and configurations for custom Seqera Studio applications. Each example demonstrates how to create and deploy different types of interactive applications in Seqera Studios.
+This branch contains the Seqera Studios configuration for running [CytoExploreR](https://github.com/DillonHammill/CytoExploreR), an interactive flow cytometry analysis platform, in RStudio Server as a Studio environment in Seqera Platform.
+
+> This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
 ## Available Examples
 
