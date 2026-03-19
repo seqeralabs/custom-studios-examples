@@ -83,7 +83,7 @@ vncserver -kill :1 2>/dev/null || true\n\
 \n\
 # Start VNC\n\
 echo "Starting VNC server on display :1"\n\
-vncserver :1 -geometry 1920x1080 -depth 24 -localhost no -SecurityTypes None\n\
+vncserver :1 -geometry 1920x1080 -depth 24 -localhost no -SecurityTypes None --I-KNOW-THIS-IS-INSECURE\n\
 sleep 3\n\
 \n\
 # Start Xfce\n\
