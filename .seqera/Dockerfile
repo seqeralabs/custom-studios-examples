@@ -16,6 +16,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install desktop environment and Wine
 RUN apt-get update && apt-get install -y \
+    # Get xdpyinfo
+    x11-utils \
     # Lightweight desktop
     xfce4 \
     xfce4-terminal \
@@ -84,12 +86,11 @@ vncserver -kill :1 2>/dev/null || true\n\
 # Start VNC\n\
 echo "Starting VNC server on display :1"\n\
 vncserver :1 -geometry 1920x1080 -depth 24 -localhost no -SecurityTypes None --I-KNOW-THIS-IS-INSECURE\n\
-sleep 3\n\
+until xdpyinfo -display :1 >/dev/null 2>&1; do sleep 0.5; done\n\
 \n\
 # Start Xfce\n\
 echo "Starting Xfce desktop environment"\n\
 DISPLAY=:1 startxfce4 &\n\
-sleep 5\n\
 \n\
 # Create desktop shortcuts\n\
 mkdir -p ~/Desktop\n\
