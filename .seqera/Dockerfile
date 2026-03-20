@@ -1,10 +1,10 @@
-# Simplified Wine + Desktop for Seqera Studios
+# Simplified Windows Desktop for Seqera Studios
 
 # Stage 1: Get Seqera Connect client
 ARG CONNECT_CLIENT_VERSION=0.10
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
-# Stage 2: Wine + Desktop environment
+# Stage 2: Windows Desktop environment
 FROM ubuntu:22.04
 
 ARG CONNECT_CLIENT_VERSION
@@ -15,7 +15,11 @@ LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-stud
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install desktop environment and Wine
-RUN apt-get update && apt-get install -y \
+RUN rm -f /etc/apt/sources.list.d/ubuntu.sources && \
+    echo "deb [trusted=yes] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse" > /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    apt-get -o Acquire::Check-Valid-Until=false update && apt-get install -y \
     # Get xdpyinfo
     x11-utils \
     # Lightweight desktop
@@ -45,6 +49,9 @@ RUN apt-get update && apt-get install -y \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
+# Create symlink so noVNC serves the VNC client at root URL
+RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
 # Set up Wine environment
 ENV WINEPREFIX=/root/.wine
 ENV WINEARCH=win64
@@ -63,7 +70,7 @@ RUN mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
 
 # Copy Seqera Connect client
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
-RUN /usr/bin/connect-client --install
+RUN apt-get update && /usr/bin/connect-client --install
 
 # Create startup script with Wine utilities
 RUN mkdir -p /app && \
@@ -119,6 +126,18 @@ Terminal=true\n\
 Categories=Wine;" > ~/Desktop/winetricks.desktop\n\
 chmod +x ~/Desktop/winetricks.desktop\n\
 \n\
+# Notepad\n\
+echo "[Desktop Entry]\n\
+Version=1.0\n\
+Type=Application\n\
+Name=Notepad\n\
+Comment=Windows Notepad via Wine\n\
+Exec=wine notepad\n\
+Icon=wine\n\
+Terminal=false\n\
+Categories=Wine;" > ~/Desktop/notepad.desktop\n\
+chmod +x ~/Desktop/notepad.desktop\n\
+\n\
 # File Manager for data access\n\
 echo "[Desktop Entry]\n\
 Version=1.0\n\
@@ -145,7 +164,7 @@ chmod +x ~/Desktop/terminal.desktop\n\
 \n\
 # Start noVNC\n\
 echo "Starting noVNC web interface on port $CONNECT_TOOL_PORT"\n\
-/usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen $CONNECT_TOOL_PORT &\n\
+websockify --web /usr/share/novnc $CONNECT_TOOL_PORT localhost:5901 &\n\
 NOVNC_PID=$!\n\
 \n\
 echo ""\n\
