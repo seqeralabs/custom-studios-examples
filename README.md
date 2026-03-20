@@ -54,4 +54,3 @@ ghcr.io/seqeralabs/custom-studios-examples/windows:latest
 - [Wine Documentation](https://www.winehq.org/documentation)
 - [WineHQ AppDB](https://appdb.winehq.org/) - Check app compatibility
 - [Winetricks](https://wiki.winehq.org/Winetricks)
-- [Micromamba Documentation](https://mamba.readthedocs.io/)
