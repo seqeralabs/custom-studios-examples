@@ -41,6 +41,22 @@ RUN rm -rf /opt/conda/pkgs/*.lock && \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
 
+# ---------------------------------------------------------------
+# Workaround: htmlwidgets 1.6.4's Shiny binding calls the synchronous
+# Shiny.renderDependencies(data.deps) before bindingDef.renderValue, so
+# the widget plugin <script> tag is appended but not awaited. Locally
+# that's a <1ms race; behind the Seqera Studios iframe/connect-client
+# relay it consistently loses, so e.g. $().DataTable is undefined when
+# the DT binding tries to initialise the table. Patch to use the
+# async variant and await it.
+RUN f=/opt/conda/envs/shinyngs/lib/R/library/htmlwidgets/www/htmlwidgets.js \
+ && grep -q 'shinyBinding.renderValue = function(el, data)' "$f" \
+ && sed -i \
+      -e 's|shinyBinding\.renderValue = function(el, data) {|shinyBinding.renderValue = async function(el, data) {|' \
+      -e 's|Shiny\.renderDependencies(data\.deps);|await (Shiny.renderDependenciesAsync ? Shiny.renderDependenciesAsync(data.deps) : Shiny.renderDependencies(data.deps));|' \
+      "$f" \
+ && grep -n 'await (Shiny.renderDependenciesAsync' "$f"
+
 # Add connect-client version label for Platform capability tracking
 ARG CONNECT_CLIENT_VERSION
 LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
