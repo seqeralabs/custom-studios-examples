@@ -16,6 +16,7 @@ This repository uses a **branch-per-studio** model (similar to [nf-core/test-dat
 | [`cellxgene`](https://github.com/seqeralabs/custom-studios-examples/tree/cellxgene) | CellxGene | Interactive single-cell data visualization |
 | [`streamlit`](https://github.com/seqeralabs/custom-studios-examples/tree/streamlit) | Streamlit | MultiQC visualization using Streamlit |
 | [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
+| [`shinyngs`](https://github.com/seqeralabs/custom-studios-examples/tree/shinyngs) | Shinyngs | RNA-seq exploration with the `shinyngs` R package |
 | [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
 
 ## Quick Start: Launch from Git Repository
@@ -23,7 +24,7 @@ This repository uses a **branch-per-studio** model (similar to [nf-core/test-dat
 1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
 2. Select **Git repository** as the source
 3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
-4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `ttyd`)
+4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`)
 5. Select your compute environment
 6. Click **Add** then **Start**
 
@@ -41,6 +42,7 @@ ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
 ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
 ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
 ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
+ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
 ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
 ```
 
@@ -85,7 +87,7 @@ Some studios support environment variable configuration:
 | CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations storage |
 | Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
 
-Studios without listed variables (Marimo, Streamlit, TTYD) work with their default configurations.
+Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations.
 
 ## Common Features
 
