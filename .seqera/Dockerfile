@@ -59,6 +59,9 @@ COPY app.R data.rds /app/
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
 # The port is set by the CONNECT_TOOL_PORT environment variable.
-# shinyngs must be attached before app.R is sourced, because app.R
-# calls prepareApp() without namespacing it.
-CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
+# shinyngs must be attached before app.R is sourced (app.R calls
+# prepareApp() without namespacing it). DT, shinyBS, plotly, shinyjs
+# are also attached so their Shiny resource paths register with httpuv,
+# otherwise widget JS/CSS (e.g. jquery.dataTables.min.js, sbs/shinyBS.css)
+# 404 and tables/plots fail to render.
+CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(DT); library(shinyBS); library(plotly); library(shinyjs); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
