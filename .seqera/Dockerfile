@@ -41,21 +41,20 @@ RUN rm -rf /opt/conda/pkgs/*.lock && \
     && micromamba clean --all --yes \
     && rm -rf /opt/conda/pkgs/*.lock
 
-# ---------------------------------------------------------------
-# Workaround: htmlwidgets 1.6.4's Shiny binding calls the synchronous
-# Shiny.renderDependencies(data.deps) before bindingDef.renderValue, so
-# the widget plugin <script> tag is appended but not awaited. Locally
-# that's a <1ms race; behind the Seqera Studios iframe/connect-client
-# relay it consistently loses, so e.g. $().DataTable is undefined when
-# the DT binding tries to initialise the table. Patch to use the
-# async variant and await it.
+# TEMPORARY: async-patch htmlwidgets 1.6.4 shinyBinding.renderValue so
+# widget plugins load before the binding runs. Drop once
+# https://github.com/pinin4fjords/shinyngs/pull/92 ships via bioconda.
 RUN f=/opt/conda/envs/shinyngs/lib/R/library/htmlwidgets/www/htmlwidgets.js \
- && grep -q 'shinyBinding.renderValue = function(el, data)' "$f" \
- && sed -i \
-      -e 's|shinyBinding\.renderValue = function(el, data) {|shinyBinding.renderValue = async function(el, data) {|' \
-      -e 's|Shiny\.renderDependencies(data\.deps);|await (Shiny.renderDependenciesAsync ? Shiny.renderDependenciesAsync(data.deps) : Shiny.renderDependencies(data.deps));|' \
-      "$f" \
- && grep -n 'await (Shiny.renderDependenciesAsync' "$f"
+ && if grep -q 'await (Shiny.renderDependenciesAsync' "$f"; then \
+      echo "htmlwidgets.js already patched, skipping"; \
+    elif grep -q 'shinyBinding\.renderValue = function(el, data)' "$f"; then \
+      sed -i \
+        -e 's|shinyBinding\.renderValue = function(el, data) {|shinyBinding.renderValue = async function(el, data) {|' \
+        -e 's|Shiny\.renderDependencies(data\.deps);|await (Shiny.renderDependenciesAsync ? Shiny.renderDependenciesAsync(data.deps) : Shiny.renderDependencies(data.deps));|' \
+        "$f"; \
+    else \
+      echo "ERROR: htmlwidgets.js renderValue pattern not found" >&2; exit 1; \
+    fi
 
 # Add connect-client version label for Platform capability tracking
 ARG CONNECT_CLIENT_VERSION
@@ -74,10 +73,7 @@ COPY app.R data.rds /app/
 # ---------------------------------------------------------------
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-# The port is set by the CONNECT_TOOL_PORT environment variable.
-# shinyngs must be attached before app.R is sourced (app.R calls
-# prepareApp() without namespacing it). DT, shinyBS, plotly, shinyjs
-# are also attached so their Shiny resource paths register with httpuv,
-# otherwise widget JS/CSS (e.g. jquery.dataTables.min.js, sbs/shinyBS.css)
-# 404 and tables/plots fail to render.
-CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(DT); library(shinyBS); library(plotly); library(shinyjs); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
+# Port is set by CONNECT_TOOL_PORT. library() calls are required:
+# shinyngs attaches prepareApp() for app.R; shinyBS/shinyjs register
+# their addResourcePath hooks (else sbs/shinyBS.css etc. 404).
+CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(shinyBS); library(shinyjs); library(markdown); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]

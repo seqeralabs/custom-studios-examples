@@ -19,6 +19,16 @@ a standalone Shiny application in Seqera Platform.
 5. Select your compute environment
 6. Click **Add** then **Start**
 
+### Alternative: Use Pre-built Image
+
+```
+ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
+```
+
+Published automatically by `.github/workflows/build.yml` on every push to this
+branch. `:latest` tracks the branch head; individual builds are also tagged
+with the short commit SHA.
+
 ### Alternative: Build with Wave CLI
 
 ```bash
@@ -40,25 +50,39 @@ docker run --rm --platform=linux/amd64 \
   --entrypoint micromamba \
   shinyngs-studio \
   run -n shinyngs R -e \
-  "shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"
+  "library(shinyngs); library(shinyBS); library(shinyjs); library(markdown); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"
 ```
 
 Then open http://localhost:3838.
 
 ## What's in the image
 
-- `r-shinyngs` from Bioconda, installed into a micromamba env named `shinyngs`
+- `r-shinyngs` and `r-markdown` from Bioconda/conda-forge, installed into a
+  micromamba env named `shinyngs`
 - `connect-client` 0.12 for Studios session bootstrapping
-- A baked-in RNA-seq demo app generated at build time from the bundled
-  `SRP254919` test dataset via `shinyngs`'s `make_app_from_files.R`, producing
-  `/app/app.R` and `/app/data.rds`
+- A pre-built shinyngs app for the `SRP254919` RNA-seq test dataset
+  (`/app/app.R` + `/app/data.rds`, produced upstream with
+  `shinyngs::make_app_from_files.R`)
+
+## Temporary workarounds
+
+The Dockerfile carries two small fixes flagged as `TEMPORARY:` that make
+standalone Shiny apps render correctly behind the Studios iframe +
+connect-client relay (attaching `shinyBS`/`shinyjs` so their resource paths
+register, and patching `htmlwidgets.js` to await plugin scripts before the
+widget binding runs). Both go away once
+[pinin4fjords/shinyngs#92](https://github.com/pinin4fjords/shinyngs/pull/92)
+ships via bioconda; the sed step is idempotent and will skip automatically
+when upstream is already async.
 
 ## Customising the data
 
-To swap in your own dataset, replace the files under `.seqera/` with your own
-expression matrix, sample metadata, feature metadata, contrasts, and
-differential-results TSVs, then rebuild. See `shinyngs`'s
-`make_app_from_files.R --help` for input schema.
+The app is built from five TSVs/CSVs fed to `shinyngs::make_app_from_files.R`
+(expression matrix, sample metadata, feature metadata, contrasts,
+differential-results). To swap in your own dataset, regenerate `app.R` +
+`data.rds` on any machine with `r-shinyngs` installed and replace the files
+under `.seqera/`, then rebuild. See `make_app_from_files.R --help` for the
+full input schema.
 
 ## References
 
