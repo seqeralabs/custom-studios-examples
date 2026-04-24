@@ -1,0 +1,76 @@
+name: Build and Push shinyngs Studio Image
+
+on:
+  push:
+    branches:
+      - shinyngs
+    paths:
+      - '.seqera/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - '.seqera/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+    inputs:
+      connect_client_version:
+        description: 'Version of connect-client to use (e.g., 0.12)'
+        required: false
+        type: string
+        default: '0.12'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/shinyngs
+  CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.12' }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "push_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "push_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .seqera
+          file: .seqera/Dockerfile
+          push: true
+          platforms: linux/amd64
+          build-args: |
+            CONNECT_CLIENT_VERSION=${{ env.CONNECT_CLIENT_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
+            ${{ steps.image-tag.outputs.push_latest == 'true' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.description=Seqera Studios image for shinyngs (RNA-seq exploration Shiny app)
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha,scope=shinyngs
+          cache-to: type=gha,mode=max,scope=shinyngs
