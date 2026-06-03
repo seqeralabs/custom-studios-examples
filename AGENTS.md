@@ -8,6 +8,14 @@ This is **Seqera Labs Custom Studios Examples** — a collection of Docker-based
 
 The `master` branch holds documentation and example directories. Deployable studio configs (`.seqera/studio-config.yaml`) live on dedicated git branches per studio.
 
+## Creating custom studios
+
+Root `AGENTS.md` covers **running existing examples**. To **compose a new custom Studio** (Dockerfile structure, connect-client integration, cloud data paths, Git branch deployment), read:
+
+**[`docs/agents/custom-studios.md`](docs/agents/custom-studios.md)**
+
+That guide distills the [Seqera blog on deploying custom apps](https://seqera.io/blog/deploy-custom-apps-studios/) and patterns from this repo. Load it only when the task involves creating or modifying a studio — not for routine builds of existing examples.
+
 ## Cursor Cloud specific instructions
 
 ### System dependencies
