@@ -13,8 +13,7 @@ on:
           - cellxgene
           - shiny
           - marimo
-          - napari
-          - qupath
+          - kasmvnc-qupath
       version:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
@@ -49,8 +48,7 @@ jobs:
             cellxgene) echo "path=./cellxgene" >> "$GITHUB_OUTPUT" ;;
             shiny) echo "path=./shiny-simple-example" >> "$GITHUB_OUTPUT" ;;
             marimo) echo "path=./marimo" >> "$GITHUB_OUTPUT" ;;
-            napari) echo "path=./kasmVNC/napari" >> "$GITHUB_OUTPUT" ;;
-            qupath) echo "path=./kasmVNC/qupath" >> "$GITHUB_OUTPUT" ;;
+            kasmvnc-qupath) echo "path=./.seqera" >> "$GITHUB_OUTPUT" ;;
           esac
 
       - name: Log in to the Container registry

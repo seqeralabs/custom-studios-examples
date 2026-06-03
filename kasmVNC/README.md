@@ -1,17 +1,16 @@
-# KasmVNC Studio Environments
+# KasmVNC QuPath Studio Environment
 
-This folder contains custom container images for running GUI desktop applications in Seqera Studios using [KasmVNC](https://kasmweb.com/kasmvnc). All images are based on the [LinuxServer.io KasmVNC base image](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/) and run in single-app mode (no desktop environment).
+This folder contains the custom container image for running [QuPath](https://qupath.github.io/) in Seqera Studios using [KasmVNC](https://kasmweb.com/kasmvnc). The image is based on the [LinuxServer.io KasmVNC base image](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/) and runs in single-app mode (no desktop environment).
 
-## Available Applications
+## Available Application
 
 | Application | Description | Platform |
 |-------------|-------------|----------|
 | [QuPath](./qupath/) | Bioimage analysis for pathology | x86_64 only |
-| [napari](./napari/) | Python-based multi-dimensional image viewer | x86_64, arm64 |
 
 ## Common Architecture
 
-All KasmVNC images share the same architecture:
+The QuPath KasmVNC image uses this architecture:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -19,7 +18,7 @@ All KasmVNC images share the same architecture:
 │  (Ubuntu Jammy + KasmVNC server)            │
 ├─────────────────────────────────────────────┤
 │  Application Layer                          │
-│  (QuPath / napari)                          │
+│  (QuPath)                                   │
 ├─────────────────────────────────────────────┤
 │  Seqera Studios Integration                 │
 │  (connect-client + Fusion filesystem)       │
@@ -42,16 +41,12 @@ ENV KASM_VNC_THREADS=4          # Match vCPU count
 - Use compute-optimized EC2 instances (c6i, c7i) for better responsiveness in Studios
 - Deploy in regions close to users to minimize latency
 
-## Building Images
+## Building Image
 
-All images require the `CONNECT_CLIENT_VERSION` build argument:
+The image requires the `CONNECT_CLIENT_VERSION` build argument:
 
 ```bash
-# QuPath
 cd qupath && docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t kasmvnc-qupath .
-
-# napari
-cd napari && docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t kasmvnc-napari .
 ```
 
 ## Local Testing
