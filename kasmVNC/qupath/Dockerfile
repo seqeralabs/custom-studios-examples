@@ -20,8 +20,10 @@ ENV KASM_VNC_JPEG_QUALITY=5
 ENV KASM_VNC_MAX_FRAME_RATE=30
 ENV KASM_VNC_THREADS=4
 
-# Install dependencies for QuPath
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install dependencies for QuPath. The base image can carry stale third-party apt
+# sources, so drop NodeSource before refreshing Ubuntu package indexes.
+RUN rm -f /etc/apt/sources.list.d/nodesource*.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
     wget \
     xz-utils \
     libgl1 \
@@ -38,6 +40,10 @@ RUN wget -q https://github.com/qupath/qupath/releases/download/v${QUPATH_VERSION
     && tar -xf /tmp/qupath.tar.xz -C /opt/qupath --strip-components=1 \
     && chmod +x /opt/qupath/bin/QuPath \
     && rm /tmp/qupath.tar.xz
+
+
+# Create the X socket directory before KasmVNC drops privileges to the abc user.
+RUN sed -i '/^exec s6-setuidgid/i mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix' /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
 
 # Single-app mode: application launches directly, no desktop
 RUN echo "/opt/qupath/bin/QuPath" > /defaults/autostart
