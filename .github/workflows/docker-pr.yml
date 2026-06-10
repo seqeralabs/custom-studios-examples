@@ -77,8 +77,8 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.container.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.container.name }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/development:${{ matrix.container.name }}-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/development:${{ matrix.container.name }}-buildcache,mode=max
 
       - name: Get image reference for scan
         id: scanref
