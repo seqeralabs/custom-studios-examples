@@ -73,8 +73,8 @@ jobs:
             CONNECT_CLIENT_VERSION=${{ inputs.connect_client_version || '0.9' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ inputs.container }}
-          cache-to: type=gha,mode=max,scope=${{ inputs.container }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.container }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.container }}:buildcache,mode=max
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8
