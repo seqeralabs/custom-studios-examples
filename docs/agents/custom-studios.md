@@ -94,7 +94,7 @@ COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /usr/bin/connect-client --install
 ```
 
-Some Python-based images also install `btrfs-progs` from Debian backports (see `marimo/Dockerfile`, `cellxgene/Dockerfile`) — follow neighboring examples when using `python:*-slim`.
+Some Python-based images also install `btrfs-progs` from Debian backports (see `marimo/Dockerfile`, `cellxgene/Dockerfile`, `streamlit/Dockerfile`) — follow neighboring examples when using `python:*-slim`.
 
 ### 5. Set the entrypoint
 
