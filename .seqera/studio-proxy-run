@@ -1,0 +1,68 @@
+#!/usr/bin/with-contenv bash
+set -euo pipefail
+
+studio_port="${STUDIO_PROXY_PORT:-${CONNECT_TOOL_PORT:-6901}}"
+upstream_port="${KASMVNC_UPSTREAM_PORT:-${CUSTOM_PORT:-3000}}"
+nginx_root="/tmp/studio-nginx"
+
+mkdir -p \
+    "${nginx_root}/client_body" \
+    "${nginx_root}/proxy" \
+    "${nginx_root}/fastcgi" \
+    "${nginx_root}/uwsgi" \
+    "${nginx_root}/scgi"
+
+cat > "${nginx_root}/nginx.conf" <<EOF
+pid ${nginx_root}/nginx.pid;
+error_log /dev/stderr info;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    access_log /dev/stdout;
+    client_body_temp_path ${nginx_root}/client_body;
+    proxy_temp_path ${nginx_root}/proxy;
+    fastcgi_temp_path ${nginx_root}/fastcgi;
+    uwsgi_temp_path ${nginx_root}/uwsgi;
+    scgi_temp_path ${nginx_root}/scgi;
+
+    map \$http_upgrade \$connection_upgrade {
+        default upgrade;
+        "" close;
+    }
+
+    server {
+        listen ${studio_port};
+        server_name _;
+
+        location / {
+            proxy_pass http://127.0.0.1:${upstream_port};
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_read_timeout 1800s;
+            proxy_send_timeout 1800s;
+            proxy_connect_timeout 1s;
+            proxy_buffering off;
+            client_max_body_size 10M;
+            proxy_intercept_errors on;
+            error_page 502 503 504 = @loading;
+        }
+
+        location @loading {
+            internal;
+            default_type text/html;
+            add_header Cache-Control "no-store" always;
+            return 200 '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>Starting QuPath</title><style>body{font-family:sans-serif;margin:3rem;color:#1f2933}main{max-width:40rem}.spinner{width:2rem;height:2rem;border:.3rem solid #d9e2ec;border-top-color:#2684ff;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body><main><div class="spinner"></div><h1>Starting QuPath...</h1><p>The desktop is still warming up. This page will refresh automatically.</p></main></body></html>';
+        }
+    }
+}
+EOF
+
+exec nginx -p "${nginx_root}" -c "${nginx_root}/nginx.conf" -g "daemon off;"

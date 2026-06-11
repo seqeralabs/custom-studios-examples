@@ -38,6 +38,7 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 - Browser access through LinuxServer.io KasmVNC
 - Single-app mode that launches QuPath directly
 - KasmVNC WebP, quality, frame-rate, and thread tuning for interactive use
+- Startup proxy that serves a loading page until KasmVNC is ready, avoiding first-load 502 errors
 
 ## References
 

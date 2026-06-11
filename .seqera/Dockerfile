@@ -44,6 +44,15 @@ RUN wget -q https://github.com/qupath/qupath/releases/download/v${QUPATH_VERSION
 # Create the X socket directory before KasmVNC drops privileges to the abc user.
 RUN sed -i '/^exec s6-setuidgid/i mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix' /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
 
+# Start a Studio-facing proxy as soon as s6 launches. KasmVNC takes a short time
+# to warm up, and this keeps first-time connections from seeing a platform 502.
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-studio-proxy
+COPY studio-proxy-run /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run
+RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
+    && echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-studio-proxy/type \
+    && mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d \
+    && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
+
 # Single-app mode: application launches directly, no desktop.
 RUN echo "/opt/qupath/bin/QuPath" > /defaults/autostart
 
@@ -64,5 +73,6 @@ RUN /usr/bin/connect-client --install
 # Seqera Studios entrypoint (connect-client handles Fusion filesystem)
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-# Bridge CONNECT_TOOL_PORT to KasmVNC's CUSTOM_PORT and launch the init system
-CMD ["/bin/bash", "-c", "export CUSTOM_PORT=${CONNECT_TOOL_PORT:-6901} && exec /init"]
+# Keep KasmVNC on an internal port and expose CONNECT_TOOL_PORT through the
+# startup proxy so the first browser request receives a loading page, not 502.
+CMD ["/bin/bash", "-c", "set -euo pipefail; export STUDIO_PROXY_PORT=${CONNECT_TOOL_PORT:-6901}; export KASMVNC_UPSTREAM_PORT=${KASMVNC_UPSTREAM_PORT:-3000}; if [ \"$STUDIO_PROXY_PORT\" = \"$KASMVNC_UPSTREAM_PORT\" ]; then export KASMVNC_UPSTREAM_PORT=3002; fi; export CUSTOM_PORT=\"$KASMVNC_UPSTREAM_PORT\"; export CUSTOM_HTTPS_PORT=${CUSTOM_HTTPS_PORT:-3001}; if [ \"$CUSTOM_HTTPS_PORT\" = \"$STUDIO_PROXY_PORT\" ] || [ \"$CUSTOM_HTTPS_PORT\" = \"$CUSTOM_PORT\" ]; then export CUSTOM_HTTPS_PORT=3003; fi; exec /init"]
