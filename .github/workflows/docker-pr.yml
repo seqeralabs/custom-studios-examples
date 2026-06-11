@@ -15,52 +15,22 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Detect changed Dockerfiles
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         with:
           filters: |
-            ttyd:
-              - 'ttyd/**'
-            streamlit:
-              - 'streamlit/**'
-            cellxgene:
-              - 'cellxgene/**'
-            shiny:
-              - 'shiny-simple-example/**'
-            marimo:
-              - 'marimo/**'
-            napari:
-              - 'kasmVNC/napari/**'
-            qupath:
-              - 'kasmVNC/qupath/**'
+            kasmvnc_qupath:
+              - '.seqera/**'
 
       - name: Set matrix
         id: set-matrix
         run: |
           CONTAINERS="[]"
-          if [[ "${{ steps.changes.outputs.ttyd }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"ttyd","path":"./ttyd"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.streamlit }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"streamlit","path":"./streamlit"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.cellxgene }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"cellxgene","path":"./cellxgene"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.shiny }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"shiny","path":"./shiny-simple-example"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.marimo }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"marimo","path":"./marimo"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.napari }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"napari","path":"./kasmVNC/napari"}]')
-          fi
-          if [[ "${{ steps.changes.outputs.qupath }}" == "true" ]]; then
-            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"qupath","path":"./kasmVNC/qupath"}]')
+          if [[ "${{ steps.changes.outputs.kasmvnc_qupath }}" == "true" ]]; then
+            CONTAINERS=$(echo "$CONTAINERS" | jq -c '. + [{"name":"kasmvnc-qupath","path":"./.seqera"}]')
           fi
           echo "matrix={\"container\":$CONTAINERS}" >> "$GITHUB_OUTPUT"
 
@@ -79,36 +49,36 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/development
           tags: |
             type=ref,event=pr,prefix=${{ matrix.container.name }}-pr
 
       - name: Build and push ${{ matrix.container.name }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25
         with:
           context: ${{ matrix.container.path }}
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.container.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.container.name }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/development:${{ matrix.container.name }}-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/development:${{ matrix.container.name }}-buildcache,mode=max
 
       - name: Get image reference for scan
         id: scanref
@@ -116,7 +86,7 @@ jobs:
           echo "ref=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
 
       - name: Run security scan
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37
         with:
           image-ref: ${{ steps.scanref.outputs.ref }}
           format: "table"
@@ -137,7 +107,7 @@ jobs:
           fi
 
       - name: Upload security scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: trivy-scan-${{ matrix.container.name }}-${{ github.run_id }}
@@ -155,7 +125,7 @@ jobs:
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const fs = require('fs');
