@@ -5,7 +5,7 @@ This branch contains the Seqera Studios configuration for running [QuPath](https
 The Studio uses this pre-built container image:
 
 ```text
-ghcr.io/seqeralabs/custom-studios-examples/kasmvnc-qupath:latest
+ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17
 ```
 
 ## Add from Git repository
@@ -25,7 +25,7 @@ The `.seqera/studio-config.yaml` file uses the registry template:
 session:
   template:
     kind: "registry"
-    registry: "ghcr.io/seqeralabs/custom-studios-examples/kasmvnc-qupath:latest"
+    registry: "ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17"
 ```
 
 QuPath is x86_64 only, so run this Studio on `linux/amd64` compatible compute.
