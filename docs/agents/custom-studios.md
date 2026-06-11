@@ -205,7 +205,7 @@ Variables defined in the Dockerfile can be overridden at Studio launch in Platfo
 | CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations |
 | Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Input CSV |
 
-Marimo, Streamlit, and TTYD use defaults only (no required env vars).
+Marimo, Streamlit, Shinyngs, and TTYD use defaults only (no required env vars).
 
 ---
 
