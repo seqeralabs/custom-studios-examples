@@ -242,6 +242,7 @@ ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
 ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
 ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
 ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
+ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
 ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
 ```
 
