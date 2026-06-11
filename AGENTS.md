@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Repository overview
 
-This is **Seqera Labs Custom Studios Examples** — a collection of Docker-based [Seqera Platform Studios](https://docs.seqera.io/platform-cloud/studios/overview) reference environments. Each studio is a standalone container image (Marimo, CellxGene, Streamlit, R Shiny, TTYD). There is no root-level package manager, monorepo build, or docker-compose stack.
+This is **Seqera Labs Custom Studios Examples** — a collection of Docker-based [Seqera Platform Studios](https://docs.seqera.io/platform-cloud/studios/overview) reference environments. Each studio is a standalone container image (Marimo, CellxGene, Streamlit, R Shiny, Shinyngs, TTYD). There is no root-level package manager, monorepo build, or docker-compose stack.
 
 The `master` branch holds documentation and example directories. Deployable studio configs (`.seqera/studio-config.yaml`) live on dedicated git branches per studio.
 
