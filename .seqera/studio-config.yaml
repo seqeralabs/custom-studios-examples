@@ -1,0 +1,12 @@
+schemaVersion: "0.0.1"
+kind: "studio-config"
+session:
+  name: "kasmvnc-qupath"
+  description: "QuPath desktop through KasmVNC"
+  template:
+    kind: "registry"
+    registry: "ghcr.io/seqeralabs/custom-studios-examples/kasmvnc-qupath:latest"
+  computeRequirements:
+    awsBatch:
+      cpu: 2
+      memory: 8192
