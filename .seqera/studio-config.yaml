@@ -1,12 +1,6 @@
 schemaVersion: "0.0.1"
 kind: "studio-config"
 session:
-  name: "kasmvnc-qupath"
-  description: "QuPath desktop through KasmVNC"
   template:
-    kind: "registry"
-    registry: "ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17"
-  computeRequirements:
-    awsBatch:
-      cpu: 2
-      memory: 8192
+    kind: "dockerfile"
+    dockerfile: "Dockerfile"

@@ -2,11 +2,7 @@
 
 This branch contains the Seqera Studios configuration for running [QuPath](https://qupath.github.io/) through [KasmVNC](https://kasmweb.com/kasmvnc).
 
-The Studio uses this pre-built container image:
-
-```text
-ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17
-```
+> This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
 ## Add from Git repository
 
@@ -19,16 +15,29 @@ ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17
 
 ## Configuration
 
-The `.seqera/studio-config.yaml` file uses the registry template:
+The `.seqera/studio-config.yaml` file uses the Dockerfile template:
 
 ```yaml
 session:
   template:
-    kind: "registry"
-    registry: "ghcr.io/seqeralabs/custom-studios-examples/development:qupath-pr17"
+    kind: "dockerfile"
+    dockerfile: "Dockerfile"
 ```
 
 QuPath is x86_64 only, so run this Studio on `linux/amd64` compatible compute.
+
+## Alternative: Build with Wave CLI
+
+```bash
+wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --tower-token "$TOWER_ACCESS_TOKEN"
+```
+
+## Features
+
+- QuPath 0.6.0 bioimage analysis desktop
+- Browser access through LinuxServer.io KasmVNC
+- Single-app mode that launches QuPath directly
+- KasmVNC WebP, quality, frame-rate, and thread tuning for interactive use
 
 ## References
 
