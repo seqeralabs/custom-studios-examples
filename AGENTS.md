@@ -61,6 +61,20 @@ sudo docker run -p 3000:3000 --entrypoint ttyd ttyd-example -W -p 3000 bash
 sudo docker run -p 3000:3000 --entrypoint marimo marimo-studio edit -p 3000 --no-token --host 0.0.0.0
 ```
 
+**CellxGene** (`cellxgene/`):
+
+```bash
+sudo docker run -p 3000:3000 --entrypoint /usr/local/bin/cellxgene cellxgene-example \
+  launch --host 0.0.0.0 --port 3000 <dataset.h5ad>
+```
+
+**Streamlit** (`streamlit/`):
+
+```bash
+sudo docker run -p 3000:3000 --entrypoint streamlit streamlit-example \
+  run /app/multiqc_app.py --server.port=3000 --server.address=0.0.0.0
+```
+
 Open http://localhost:3000 in a browser after the container starts.
 
 ### Lint / test / CI
@@ -70,6 +84,7 @@ There are no local lint or unit-test scripts. CI (`.github/workflows/docker-pr.y
 ### Gotchas
 
 - All images target **`linux/amd64`**; pass `--platform=linux/amd64` when building on ARM hosts.
-- **CellxGene** and **Streamlit** may need external data mounted or downloaded at runtime.
+- **CellxGene** fails to start if a referenced `s3://`/`gs://`/`az://` dataset path isn't mounted via **Mount data** in the Studio.
+- **Marimo** does not support opening the same notebook in multiple tabs (state conflicts).
 - **Shiny** ships bundled `data.csv`; override `DATA_PATH` or mount volumes for custom data.
 - Do not merge studio branch configs into `master` (project convention).
