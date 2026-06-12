@@ -60,7 +60,7 @@ ARG CONNECT_CLIENT_VERSION=0.9
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 ```
 
-Pass the version at build time: `--build-arg CONNECT_CLIENT_VERSION=0.9`. Dockerfiles in this repo default to `0.9`.
+Pass the version at build time, e.g. `--build-arg CONNECT_CLIENT_VERSION=0.9`. Defaults vary across the repo: the `master` example directories pin `0.9`, while several `.seqera/` branches (`marimo`, `streamlit`, `ttyd`, `shinyngs`) pin `0.12`. Check the `ARG CONNECT_CLIENT_VERSION` default in the specific Dockerfile rather than assuming a single value.
 
 ### 2. Choose an application base image
 
