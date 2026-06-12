@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=IGV
+Comment=Integrative Genomics Viewer
+Exec=/opt/conda/bin/igv
+Icon=utilities-terminal
+Terminal=false
+Categories=System;Science;Biology;
