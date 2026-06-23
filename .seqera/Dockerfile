@@ -77,10 +77,17 @@ LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
 COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /usr/bin/connect-client --install
 
-WORKDIR /app
-
-# Pre-built shinyngs app and its serialised dataset
-COPY app.R data.rds /app/
+# ---------------------------------------------------------------
+# App code (app.R) and dataset (data.rds) are NOT copied into the
+# image. They are delivered at runtime by the Studios git clone into
+# /workspace/.seqera (configured via session.clone in studio-config.yaml).
+#
+# WARNING: If clone is not enabled, the studio won't run — app.R and
+# data.rds will be missing from the container.
+#
+# data.rds is also excluded from the docker build context via
+# .seqera/.dockerignore (it exceeds the 5MB build-context file limit).
+# ---------------------------------------------------------------
 
 # ---------------------------------------------------------------
 # 3) Launch with connect-client --entrypoint (for Platform)
@@ -90,4 +97,6 @@ ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 # Port is set by CONNECT_TOOL_PORT. library() calls are required:
 # shinyngs attaches prepareApp() for app.R; shinyBS/shinyjs register
 # their addResourcePath hooks (else sbs/shinyBS.css etc. 404).
-CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(shinyBS); library(shinyjs); library(markdown); shiny::runApp('/app', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
+# runApp() runs from the cloned app dir, so app.R's relative
+# readRDS("data.rds") resolves to /workspace/.seqera/data.rds.
+CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(shinyBS); library(shinyjs); library(markdown); shiny::runApp('/workspace/.seqera', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]

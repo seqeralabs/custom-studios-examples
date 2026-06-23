@@ -1,0 +1,5 @@
+# data.rds is delivered at runtime via the Studios git clone (into
+# /workspace/.seqera), not through the image build context. It also
+# exceeds the 5MB per-file build-context limit, so it must be excluded
+# here or the studio build will fail.
+data.rds
