@@ -9,7 +9,7 @@ library(markdown)
 esel <- readRDS("data.rds")
 
 # Prepare the Shiny app using the loaded RNA-seq dataset
-app <- prepareApp("rnaseq", esel)
+app <- prepare_app("rnaseq", esel)
 
 # Launch the Shiny application
 shiny::shinyApp(app$ui, app$server)
