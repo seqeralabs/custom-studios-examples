@@ -99,4 +99,4 @@ ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 # their addResourcePath hooks (else sbs/shinyBS.css etc. 404).
 # runApp() runs from the cloned app dir, so app.R's relative
 # readRDS("data.rds") resolves to /workspace/.seqera/data.rds.
-CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(shinyBS); library(shinyjs); library(markdown); shiny::runApp('/workspace/.seqera', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
+CMD ["micromamba", "run", "-n", "shinyngs", "R", "-e", "library(shinyngs); library(shinyjs); library(markdown); shiny::runApp('/workspace/.seqera', host='0.0.0.0', port=as.integer(Sys.getenv('CONNECT_TOOL_PORT')))"]
