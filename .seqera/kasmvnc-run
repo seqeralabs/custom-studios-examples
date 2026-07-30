@@ -1,0 +1,32 @@
+#!/usr/bin/with-contenv bash
+
+# Keep the LinuxServer KasmVNC service behavior while making the display and
+# stream settings explicit and overridable through the Studio environment.
+if ls /dev/dri/renderD* > /dev/null 2>&1 && [ -z "${DISABLE_DRI+x}" ] && ! command -v nvidia-smi > /dev/null; then
+    HW3D="-hw3d"
+fi
+
+: "${DRINODE:=/dev/dri/renderD128}"
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
+
+exec s6-setuidgid abc \
+    /usr/local/bin/Xvnc "$DISPLAY" \
+    ${HW3D:-} \
+    -PublicIP 127.0.0.1 \
+    -drinode "$DRINODE" \
+    -disableBasicAuth \
+    -SecurityTypes None \
+    -AlwaysShared \
+    -http-header Cross-Origin-Embedder-Policy=require-corp \
+    -http-header Cross-Origin-Opener-Policy=same-origin \
+    -geometry 1024x768 \
+    -AcceptSetDesktopSize=1 \
+    -sslOnly 0 \
+    -RectThreads "${KASMVNC_RECT_THREADS:-4}" \
+    -FrameRate "${KASMVNC_FRAME_RATE:-30}" \
+    -DynamicQualityMin "${KASMVNC_DYNAMIC_QUALITY_MIN:-7}" \
+    -DynamicQualityMax "${KASMVNC_DYNAMIC_QUALITY_MAX:-8}" \
+    -websocketPort 6901 \
+    -interface 0.0.0.0 \
+    -Log '*:stdout:10'
