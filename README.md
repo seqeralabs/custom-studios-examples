@@ -1,116 +1,66 @@
-# Custom Studios Examples
+# Selkies Webtop Studio Environment
 
-Example configurations for deploying custom [Seqera Studio](https://docs.seqera.io/platform-cloud/studios/overview) applications from a Git repository.
+This branch contains a prototype Seqera Studios configuration for running a full Ubuntu KDE desktop through [Selkies](https://selkies-project.github.io/selkies/) using the LinuxServer.io Webtop base image.
 
-> **Do not merge studio configurations into `master`!** Each studio has its own dedicated branch.
+> This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
-## Repository Structure
+## Add from Git repository
 
-This repository uses a **branch-per-studio** model (similar to [nf-core/test-datasets](https://github.com/nf-core/test-datasets)). The `master` branch contains only this documentation. Each studio's configuration lives on its own branch with a `.seqera/` directory containing the `studio-config.yaml` and `Dockerfile` required for [launching Studios from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo).
+1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace.
+2. Select **Git repository** as the source.
+3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`.
+4. Select branch: `feat/selkies-webtop`.
+5. Select your compute environment.
+6. Click **Add**, then **Start**.
 
-## Available Studios
+## Configuration
 
-| Branch | Studio | Description |
-|--------|--------|-------------|
-| [`marimo`](https://github.com/seqeralabs/custom-studios-examples/tree/marimo) | Marimo | Reactive Python notebook environment |
-| [`cellxgene`](https://github.com/seqeralabs/custom-studios-examples/tree/cellxgene) | CellxGene | Interactive single-cell data visualization |
-| [`streamlit`](https://github.com/seqeralabs/custom-studios-examples/tree/streamlit) | Streamlit | MultiQC visualization using Streamlit |
-| [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
-| [`shinyngs`](https://github.com/seqeralabs/custom-studios-examples/tree/shinyngs) | Shinyngs | RNA-seq exploration with the `shinyngs` R package |
-| [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
+The `.seqera/studio-config.yaml` file uses the Dockerfile template:
 
-## Quick Start: Launch from Git Repository
-
-1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
-2. Select **Git repository** as the source
-3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
-4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`)
-5. Select your compute environment
-6. Click **Add** then **Start**
-
-Each branch contains a `.seqera/` directory with:
-- `studio-config.yaml` — Studio configuration pointing to the Dockerfile
-- `Dockerfile` — Container definition with connect-client integration
-- Any supporting files required by the Dockerfile
-
-## Alternative Deployment: Pre-built Images
-
-Each studio is also available as a pre-built container image:
-
-```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
+```yaml
+session:
+  template:
+    kind: "dockerfile"
+    dockerfile: "Dockerfile"
 ```
 
-To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
+This prototype uses `lscr.io/linuxserver/webtop:ubuntu-kde`, so it is best suited to `linux/amd64` compute with enough CPU and memory for a full desktop session.
 
-## Alternative Deployment: Wave CLI
-
-You can also build any studio with the [Wave CLI](https://docs.seqera.io/wave/):
+## Alternative: Build with Wave CLI
 
 ```bash
-# Clone only the branch you need
-git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
-
-# Build with Wave
 wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --tower-token "$TOWER_ACCESS_TOKEN"
 ```
 
-## Cloning a Specific Studio
+## Features
 
-Due to the branch-per-studio model, we recommend cloning only the branch you need:
+- Full Ubuntu KDE desktop delivered through Selkies
+- Seqera `connect-client` integration for Studio-compatible startup
+- Wayland-first desktop configuration for the modern low-latency rendering path
+- Automatic GPU enablement when `/dev/dri` is available in the runtime
+- Startup proxy that serves a loading page until the desktop is ready, avoiding first-load 502 errors
 
-```bash
-git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
-```
+## Runtime defaults
 
-To add another branch later:
+The container is configured with these defaults:
 
-```bash
-git remote set-branches --add origin <studio-name>
-git fetch
-```
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `TITLE` | `Selkies Ubuntu KDE Desktop` | Browser tab title shown by Webtop |
+| `SELKIES_DESKTOP` | `true` | Enables the full desktop experience in Selkies mode |
+| `PIXELFLUX_WAYLAND` | `true` | Uses the modern Wayland rendering path when supported |
+| `AUTO_GPU` | `true` | Automatically uses the first available render node for acceleration |
 
-## Environment Variables
+If you want a lighter prototype later, the base image can be switched to `lscr.io/linuxserver/webtop:ubuntu-xfce`.
 
-Some studios support environment variable configuration:
+## Notes
 
-| Studio | Variable | Default | Description |
-|--------|----------|---------|-------------|
-| CellxGene | `DATASET_FILE` | `s3://cellxgene_datasets/pbmc3k.h5ad` | Path to .h5ad dataset |
-| CellxGene | `DATASET_TITLE` | `PBMCs 3k test dataset` | Display title |
-| CellxGene | `USER_DATA_DIR` | `/user-data/cellxgene` | User data storage |
-| CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations storage |
-| Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
+- I did not run `docker build`, because this environment is set to avoid Docker execution unless explicitly requested.
+- LinuxServer’s Webtop documentation notes that Wayland mode is the preferred acceleration path and that the image listens on internal HTTP port `3000`, which this Studio proxies behind `CONNECT_TOOL_PORT`.
 
-Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations.
+## References
 
-## Common Features
-
-All studios in this repository:
-- Use the `.seqera/` directory convention for Git-based Studio deployment
-- Include the required Seqera `connect-client` for platform integration
-- Support data mounting via datalinks in Studios
-- Are built for `linux/amd64` platform compatibility
-- Use multi-stage Docker builds with connect-client
-
-## Documentation
-
-- [Add a Studio from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
-- [Custom studio environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
-- [Wave CLI](https://docs.seqera.io/wave/)
-- [Deploying custom applications in Seqera Studios](https://seqera.io/blog/deploy-custom-apps-studios/)
-
-## Contributing
-
-To add a new studio:
-
-1. Create a new branch from an empty root (orphan branch): `git checkout --orphan <studio-name>`
-2. Add a `.seqera/` directory with `studio-config.yaml` and `Dockerfile`
-3. Add a `README.md` documenting the studio
-4. Push the branch
-5. Update this README on `master` to list the new studio
+- [Seqera Studios: Import from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
+- [Seqera Studios: Custom environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
+- [LinuxServer Webtop](https://github.com/linuxserver/docker-webtop)
+- [Selkies documentation](https://selkies-project.github.io/selkies/)
