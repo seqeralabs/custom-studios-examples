@@ -20,8 +20,8 @@ exec s6-setuidgid abc \
     -AlwaysShared \
     -http-header Cross-Origin-Embedder-Policy=require-corp \
     -http-header Cross-Origin-Opener-Policy=same-origin \
-    -geometry "${VNC_RESOLUTION:-1440x900}" \
-    -AcceptSetDesktopSize=0 \
+    -geometry 1024x768 \
+    -AcceptSetDesktopSize=1 \
     -sslOnly 0 \
     -RectThreads "${KASMVNC_RECT_THREADS:-4}" \
     -FrameRate "${KASMVNC_FRAME_RATE:-30}" \
