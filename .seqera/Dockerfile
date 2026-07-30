@@ -14,11 +14,9 @@ LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-stud
 
 ENV TITLE="QuPath"
 
-# A fixed, laptop-friendly desktop prevents a large client display from
-# negotiating a huge remote canvas with tiny QuPath controls. These values can
-# still be overridden in the Studio environment when a different display is
-# required.
-ENV VNC_RESOLUTION=1440x900 \
+# The remote desktop follows the browser size. QuPath's interface is scaled
+# separately by the launcher, so controls remain readable on large displays.
+ENV QUPATH_UI_SCALE=1.5 \
     KASMVNC_FRAME_RATE=30 \
     KASMVNC_RECT_THREADS=4 \
     KASMVNC_DYNAMIC_QUALITY_MIN=7 \
@@ -45,6 +43,14 @@ RUN wget -q https://github.com/qupath/qupath/releases/download/v${QUPATH_VERSION
     && chmod +x /opt/qupath/bin/QuPath \
     && rm /tmp/qupath.tar.xz
 
+# Scale QuPath's JavaFX interface without constraining the remote desktop.
+RUN printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dglass.gtk.uiScale=${QUPATH_UI_SCALE:-1.5}"' \
+    'exec /opt/qupath/bin/QuPath "$@"' \
+    > /usr/local/bin/start-qupath \
+    && chmod +x /usr/local/bin/start-qupath
+
 # Override the base image's KasmVNC service with settings it actually consumes.
 COPY kasmvnc-run /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
 RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
@@ -59,7 +65,7 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
 
 # Single-app mode: application launches directly, no desktop.
-RUN echo "/opt/qupath/bin/QuPath" > /defaults/autostart
+RUN echo "/usr/local/bin/start-qupath" > /defaults/autostart
 
 # ---------------------------------------------------------------
 # 3) Seqera Studios integration
