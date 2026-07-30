@@ -37,8 +37,23 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 - QuPath 0.6.0 bioimage analysis desktop
 - Browser access through LinuxServer.io KasmVNC
 - Single-app mode that launches QuPath directly
-- KasmVNC WebP, quality, frame-rate, and thread tuning for interactive use
+- A fixed 1440×900 desktop so QuPath controls remain readable on large displays
+- 30 FPS streaming, four compression threads, and high-quality text updates for responsive interaction
 - Startup proxy that serves a loading page until KasmVNC is ready, avoiding first-load 502 errors
+
+## Display and streaming defaults
+
+The Studio defaults to a 1440×900 desktop. This keeps the QuPath interface readable on high-resolution displays rather than allowing the browser to negotiate an oversized remote desktop.
+
+For a different environment, override any of these Studio environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `VNC_RESOLUTION` | `1440x900` | Fixed remote desktop size, as `WIDTHxHEIGHT` |
+| `KASMVNC_FRAME_RATE` | `30` | Maximum streamed frames per second |
+| `KASMVNC_RECT_THREADS` | `4` | Parallel compression threads |
+| `KASMVNC_DYNAMIC_QUALITY_MIN` | `7` | Lowest quality used while the screen is changing |
+| `KASMVNC_DYNAMIC_QUALITY_MAX` | `8` | Quality used for mostly static content such as text |
 
 ## References
 
