@@ -1,6 +1,6 @@
 # Selkies Webtop Studio Environment
 
-This branch contains a prototype Seqera Studios configuration for running a full Ubuntu KDE desktop through [Selkies](https://selkies-project.github.io/selkies/) using the LinuxServer.io Webtop base image.
+This branch contains a prototype Seqera Studios configuration for running a full Ubuntu XFCE desktop through [Selkies](https://selkies-project.github.io/selkies/) using the LinuxServer.io Webtop base image.
 
 > This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
@@ -24,7 +24,7 @@ session:
     dockerfile: "Dockerfile"
 ```
 
-This prototype uses `lscr.io/linuxserver/webtop:ubuntu-kde`, so it is best suited to `linux/amd64` compute with enough CPU and memory for a full desktop session.
+This prototype uses `lscr.io/linuxserver/webtop:ubuntu-xfce`, so it is best suited to `linux/amd64` compute with enough CPU and memory for a full desktop session.
 
 ## Alternative: Build with Wave CLI
 
@@ -34,7 +34,7 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 
 ## Features
 
-- Full Ubuntu KDE desktop delivered through Selkies
+- Full Ubuntu XFCE desktop delivered through Selkies
 - Seqera `connect-client` integration for Studio-compatible startup
 - Wayland-first desktop configuration for the modern low-latency rendering path
 - Automatic GPU enablement when `/dev/dri` is available in the runtime
@@ -46,12 +46,12 @@ The container is configured with these defaults:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `TITLE` | `Selkies Ubuntu KDE Desktop` | Browser tab title shown by Webtop |
+| `TITLE` | `Selkies Ubuntu XFCE Desktop` | Browser tab title shown by Webtop |
 | `SELKIES_DESKTOP` | `true` | Enables the full desktop experience in Selkies mode |
 | `PIXELFLUX_WAYLAND` | `true` | Uses the modern Wayland rendering path when supported |
 | `AUTO_GPU` | `true` | Automatically uses the first available render node for acceleration |
 
-If you want a lighter prototype later, the base image can be switched to `lscr.io/linuxserver/webtop:ubuntu-xfce`.
+This branch intentionally uses the lighter XFCE flavor instead of `ubuntu-kde` because Webtop documents KDE as a Wayland-only variant, while XFCE is the safer compatibility choice for Studio prototyping.
 
 ## Notes
 

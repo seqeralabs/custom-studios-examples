@@ -15,11 +15,11 @@
 ARG CONNECT_CLIENT_VERSION=0.12
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
-FROM lscr.io/linuxserver/webtop:ubuntu-kde
+FROM lscr.io/linuxserver/webtop:ubuntu-xfce
 
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
 
-ENV TITLE="Selkies Ubuntu KDE Desktop"
+ENV TITLE="Selkies Ubuntu XFCE Desktop"
 ENV START_DOCKER="false"
 ENV SELKIES_DESKTOP="true"
 ENV PIXELFLUX_WAYLAND="true"
