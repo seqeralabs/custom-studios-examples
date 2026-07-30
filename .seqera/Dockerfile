@@ -14,11 +14,15 @@ LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-stud
 
 ENV TITLE="QuPath"
 
-# KasmVNC performance tuning for interactive desktop streaming
-ENV KASM_VNC_ENABLE_WEBP=1
-ENV KASM_VNC_JPEG_QUALITY=5
-ENV KASM_VNC_MAX_FRAME_RATE=30
-ENV KASM_VNC_THREADS=4
+# A fixed, laptop-friendly desktop prevents a large client display from
+# negotiating a huge remote canvas with tiny QuPath controls. These values can
+# still be overridden in the Studio environment when a different display is
+# required.
+ENV VNC_RESOLUTION=1440x900 \
+    KASMVNC_FRAME_RATE=30 \
+    KASMVNC_RECT_THREADS=4 \
+    KASMVNC_DYNAMIC_QUALITY_MIN=7 \
+    KASMVNC_DYNAMIC_QUALITY_MAX=8
 
 # Install dependencies for QuPath. The base image can carry stale third-party apt
 # sources, so drop NodeSource before refreshing Ubuntu package indexes.
@@ -41,8 +45,9 @@ RUN wget -q https://github.com/qupath/qupath/releases/download/v${QUPATH_VERSION
     && chmod +x /opt/qupath/bin/QuPath \
     && rm /tmp/qupath.tar.xz
 
-# Create the X socket directory before KasmVNC drops privileges to the abc user.
-RUN sed -i '/^exec s6-setuidgid/i mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix' /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
+# Override the base image's KasmVNC service with settings it actually consumes.
+COPY kasmvnc-run /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
+RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
 
 # Start a Studio-facing proxy as soon as s6 launches. KasmVNC takes a short time
 # to warm up, and this keeps first-time connections from seeing a platform 502.
