@@ -36,8 +36,8 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 
 - Full Ubuntu XFCE desktop delivered through Selkies
 - Seqera `connect-client` integration for Studio-compatible startup
-- Wayland-first desktop configuration for the modern low-latency rendering path
-- Automatic GPU enablement when `/dev/dri` is available in the runtime
+- X11 compatibility mode instead of Wayland for safer Studio startup
+- Virtual display clamped to 1920x1080 to reduce boot-time overhead
 - Direct binding of Webtop's internal HTTPS listener to `CONNECT_TOOL_PORT` for simpler Studio startup
 
 ## Runtime defaults
@@ -47,16 +47,18 @@ The container is configured with these defaults:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `TITLE` | `Selkies Ubuntu XFCE Desktop` | Browser tab title shown by Webtop |
-| `SELKIES_DESKTOP` | `true` | Enables the full desktop experience in Selkies mode |
-| `PIXELFLUX_WAYLAND` | `true` | Uses the modern Wayland rendering path when supported |
-| `AUTO_GPU` | `true` | Automatically uses the first available render node for acceleration |
+| `PIXELFLUX_WAYLAND` | `false` | Disables Wayland and uses the more compatible X11 startup path |
+| `DISABLE_ZINK` | `true` | Avoids GPU-backed Zink rendering in Studio environments |
+| `DISABLE_DRI3` | `true` | Avoids DRI3 acceleration assumptions during startup |
+| `MAX_RES` | `1920x1080` | Caps the virtual desktop size to reduce memory and startup pressure |
 
-This branch intentionally uses the lighter XFCE flavor instead of `ubuntu-kde` because Webtop documents KDE as a Wayland-only variant, while XFCE is the safer compatibility choice for Studio prototyping.
+This branch intentionally uses the lighter XFCE flavor instead of `ubuntu-kde` because Webtop documents KDE as a Wayland-only variant, while XFCE is the safer compatibility choice for Studio prototyping. It also disables Wayland explicitly because LinuxServer recommends `PIXELFLUX_WAYLAND=false` when compatibility issues appear.
 
 ## Notes
 
 - I did not run `docker build`, because this environment is set to avoid Docker execution unless explicitly requested.
 - LinuxServer’s Webtop documentation notes that the desktop is presented on internal HTTPS port `3001` by default. This Studio overrides that with `CUSTOM_HTTPS_PORT=$CONNECT_TOOL_PORT` so the container binds directly to the port Seqera expects while leaving the internal HTTP listener on `3000`.
+- LinuxServer also documents that Wayland can be disabled with `PIXELFLUX_WAYLAND=false` for compatibility problems, which is what this branch now does.
 
 ## References
 

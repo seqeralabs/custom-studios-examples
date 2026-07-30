@@ -21,9 +21,10 @@ LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-stud
 
 ENV TITLE="Selkies Ubuntu XFCE Desktop"
 ENV START_DOCKER="false"
-ENV SELKIES_DESKTOP="true"
-ENV PIXELFLUX_WAYLAND="true"
-ENV AUTO_GPU="true"
+ENV PIXELFLUX_WAYLAND="false"
+ENV DISABLE_ZINK="true"
+ENV DISABLE_DRI3="true"
+ENV MAX_RES="1920x1080"
 ENV LC_ALL="C.UTF-8"
 
 ARG CONNECT_CLIENT_VERSION
