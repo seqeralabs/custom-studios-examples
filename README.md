@@ -38,7 +38,7 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 - Seqera `connect-client` integration for Studio-compatible startup
 - Wayland-first desktop configuration for the modern low-latency rendering path
 - Automatic GPU enablement when `/dev/dri` is available in the runtime
-- Startup proxy that serves a loading page until the desktop is ready, avoiding first-load 502 errors
+- Direct binding of Webtop's internal HTTP listener to `CONNECT_TOOL_PORT` for simpler Studio startup
 
 ## Runtime defaults
 
@@ -56,7 +56,7 @@ If you want a lighter prototype later, the base image can be switched to `lscr.i
 ## Notes
 
 - I did not run `docker build`, because this environment is set to avoid Docker execution unless explicitly requested.
-- LinuxServer’s Webtop documentation notes that Wayland mode is the preferred acceleration path and that the image listens on internal HTTP port `3000`, which this Studio proxies behind `CONNECT_TOOL_PORT`.
+- LinuxServer’s Webtop documentation notes that Wayland mode is the preferred acceleration path and that the image listens on internal HTTP port `3000` by default. This Studio overrides that with `CUSTOM_PORT=$CONNECT_TOOL_PORT` so the container binds directly to the port Seqera expects.
 
 ## References
 

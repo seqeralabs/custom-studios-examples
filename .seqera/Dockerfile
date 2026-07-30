@@ -26,15 +26,6 @@ ENV PIXELFLUX_WAYLAND="true"
 ENV AUTO_GPU="true"
 ENV LC_ALL="C.UTF-8"
 
-# Start a Studio-facing proxy immediately so first connections see a loading
-# page while the desktop stack initializes.
-RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-studio-proxy
-COPY studio-proxy-run /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run
-RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
-    && echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-studio-proxy/type \
-    && mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d \
-    && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
-
 ARG CONNECT_CLIENT_VERSION
 LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
 
@@ -43,4 +34,4 @@ RUN /usr/bin/connect-client --install
 
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-CMD ["/bin/bash", "-c", "set -euo pipefail; export STUDIO_PROXY_PORT=${CONNECT_TOOL_PORT:-6901}; export SELKIES_UPSTREAM_PORT=${SELKIES_UPSTREAM_PORT:-3000}; if [ \"$STUDIO_PROXY_PORT\" = \"$SELKIES_UPSTREAM_PORT\" ]; then export SELKIES_UPSTREAM_PORT=3002; fi; export CUSTOM_PORT=\"$SELKIES_UPSTREAM_PORT\"; export CUSTOM_HTTPS_PORT=${CUSTOM_HTTPS_PORT:-3001}; if [ \"$CUSTOM_HTTPS_PORT\" = \"$STUDIO_PROXY_PORT\" ] || [ \"$CUSTOM_HTTPS_PORT\" = \"$CUSTOM_PORT\" ]; then export CUSTOM_HTTPS_PORT=3003; fi; export CUSTOM_WS_PORT=${CUSTOM_WS_PORT:-8082}; exec /init"]
+CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CONNECT_TOOL_PORT:-3000}; export CUSTOM_HTTPS_PORT=${CUSTOM_HTTPS_PORT:-3001}; export CUSTOM_WS_PORT=${CUSTOM_WS_PORT:-8082}; exec /init"]
