@@ -34,4 +34,4 @@ RUN /usr/bin/connect-client --install
 
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CONNECT_TOOL_PORT:-3000}; export CUSTOM_HTTPS_PORT=${CUSTOM_HTTPS_PORT:-3001}; export CUSTOM_WS_PORT=${CUSTOM_WS_PORT:-8082}; exec /init"]
+CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CUSTOM_PORT:-3000}; export CUSTOM_HTTPS_PORT=${CONNECT_TOOL_PORT:-3001}; export CUSTOM_WS_PORT=${CUSTOM_WS_PORT:-8082}; exec /init"]
