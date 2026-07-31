@@ -27,18 +27,19 @@ echo "[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY
 # to a file costs the Platform log view its copy of the s6 output, which is the trade
 # for having any copy at all.
 # ponytail: debug scaffolding, drop this block once Studio startup is stable.
+# STUDIO_DEBUG_DIR must name the bucket path outright. Fusion serves
+# /fusion/s3/<bucket>/<key> on demand but does not enumerate buckets at
+# /fusion/s3/, so globbing for the mount finds nothing and silently disables
+# capture. mkdir errors are left on stderr on purpose.
 log_dir="${STUDIO_DEBUG_DIR:-}"
-if [ -z "$log_dir" ]; then
-    log_dir=$(ls -d /fusion/s3/*/ 2>/dev/null | head -1) || log_dir=""
-fi
 log_dir="${log_dir%/}"
 
-if [ -n "$log_dir" ] && mkdir -p "${log_dir}/studio-debug" 2>/dev/null; then
+if [ -n "$log_dir" ] && mkdir -p "${log_dir}/studio-debug"; then
     # No append: S3 objects cannot be appended to, and the name is unique per session.
     log_file="${log_dir}/studio-debug/init-$(date -u +%Y%m%dT%H%M%SZ).log"
     echo "[studio] writing /init output to $log_file"
     exec /init > "$log_file" 2>&1
 fi
 
-echo "[studio] no Fusion mount under /fusion/s3, leaving /init output on stdout"
+echo "[studio] STUDIO_DEBUG_DIR unset or unwritable, leaving /init output on stdout"
 exec /init
