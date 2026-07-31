@@ -99,8 +99,9 @@ RUN cd /usr/local/bin \
     && curl -s https://get.nextflow.io | bash \
     && chmod 0755 /usr/local/bin/nextflow \
     && mkdir -p "$NXF_HOME" \
-    && chmod 1777 "$NXF_HOME" \
-    && test -x /usr/local/bin/nextflow
+    && chmod -R a+rX "$NXF_HOME" \
+    && find "$NXF_HOME" -type d -exec chmod 1777 {} + \
+    && su -s /bin/bash abc -c "nextflow -version"
 
 # svc-nginx sweeps leftover nginx processes with pgrep/pkill -f "[n]ginx:", and an
 # nginx master titles itself "nginx: master process ...", so that pattern matches the
