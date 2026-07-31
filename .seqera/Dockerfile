@@ -84,4 +84,4 @@ ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 # connect-client proxies plain HTTP to CONNECT_TOOL_PORT, so webtop's HTTP listener
 # must own that port. Pointing the HTTPS listener there instead makes nginx answer
 # the health probe with "400 Bad Request" and the Studio never starts.
-CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CONNECT_TOOL_PORT:-3000}; exec /init"]
+CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CONNECT_TOOL_PORT:-3000}; echo \"[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} -> CUSTOM_PORT=$CUSTOM_PORT\"; exec /init"]
