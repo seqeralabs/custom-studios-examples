@@ -1,10 +1,5 @@
 #!/bin/bash
 # Studio entrypoint: resolve ports, capture startup output, hand off to s6.
-#
-# Must exec /init as the final step: s6-overlay refuses to run as anything but the
-# process it was handed ("s6-overlay-suexec: fatal: can only run as pid 1"), so no
-# pipeline or wrapper may come between this script and /init. Redirections are fine,
-# a pipe is not.
 set -euo pipefail
 
 # The studio proxy owns CONNECT_TOOL_PORT and webtop's own nginx stays internal, so
@@ -16,30 +11,56 @@ if [ "$STUDIO_PROXY_PORT" = "$WEBTOP_UPSTREAM_PORT" ]; then
 fi
 export CUSTOM_PORT="$WEBTOP_UPSTREAM_PORT"
 
-echo "[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT"
+echo "[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT pid=$$"
 
 # Send /init's output to the session's Fusion-mounted work directory. On a startup
 # failure the instance is terminated within seconds, before the CloudWatch agent ships
 # the container's stdout, so this is the only copy that outlives the session.
 #
 # Redirect to a plain file, never a pipe: s6-overlay's stage1 segfaults immediately if
-# stdout is a pipe, so "exec > >(tee ...)" kills the desktop before it starts. Writing
-# to a file costs the Platform log view its copy of the s6 output, which is the trade
-# for having any copy at all.
-# ponytail: debug scaffolding, drop this block once Studio startup is stable.
+# stdout is a pipe, so "exec > >(tee ...)" kills the desktop before it starts.
+#
 # STUDIO_DEBUG_DIR must name the bucket path outright. Fusion serves
-# /fusion/s3/<bucket>/<key> on demand but does not enumerate buckets at
-# /fusion/s3/, so globbing for the mount finds nothing and silently disables
-# capture. mkdir errors are left on stderr on purpose.
+# /fusion/s3/<bucket>/<key> on demand but does not enumerate buckets at /fusion/s3/,
+# so globbing for the mount finds nothing and silently disables capture. mkdir errors
+# are left on stderr on purpose.
+# ponytail: debug scaffolding, delete this block once Studio startup is stable.
 log_dir="${STUDIO_DEBUG_DIR:-}"
 log_dir="${log_dir%/}"
-
 if [ -n "$log_dir" ] && mkdir -p "${log_dir}/studio-debug"; then
     # No append: S3 objects cannot be appended to, and the name is unique per session.
     log_file="${log_dir}/studio-debug/init-$(date -u +%Y%m%dT%H%M%SZ).log"
-    echo "[studio] writing /init output to $log_file"
-    exec /init > "$log_file" 2>&1
+    echo "[studio] writing s6 output to $log_file"
+    exec > "$log_file" 2>&1
 fi
 
-echo "[studio] STUDIO_DEBUG_DIR unset or unwritable, leaving /init output on stdout"
-exec /init
+# Hand off to s6-overlay.
+#
+# s6-overlay's /init must be pid 1: it execs s6-overlay-suexec, which aborts with
+# "s6-overlay-suexec: fatal: can only run as pid 1" otherwise. connect-client runs the
+# tool as a child process rather than exec'ing it, so under Studios that check fails
+# and the session dies seconds after starting.
+#
+# Skipping suexec is not an option: preinit reads the UID/EUID/GID environment that
+# suexec sets up ("test: Illegal number:" without it), and stage0 documents itself as
+# "run as pid 1" and execs a real init that needs a runlevel. So give /init a PID
+# namespace of its own instead, where it is pid 1 for real. This needs CAP_SYS_ADMIN,
+# which the Studio container has (it sets up loop devices, btrfs and FUSE mounts).
+if [ "$$" = "1" ]; then
+    exec /init
+fi
+
+# --mount-proc implies --mount, giving /proc that matches the new namespace. Fall back
+# to a bare PID namespace if the mount propagation change is refused.
+if unshare --pid --fork --mount-proc true 2>/dev/null; then
+    echo "[studio] pid is $$, re-executing /init in a PID namespace (with /proc)"
+    exec unshare --pid --fork --mount-proc /init
+elif unshare --pid --fork true 2>/dev/null; then
+    echo "[studio] pid is $$, re-executing /init in a PID namespace"
+    exec unshare --pid --fork /init
+fi
+
+echo "[studio] fatal: pid is $$, not 1, and no PID namespace available." >&2
+echo "[studio] s6-overlay requires pid 1; check that the container has CAP_SYS_ADMIN." >&2
+unshare --pid --fork true || true
+exit 1
