@@ -48,11 +48,11 @@ COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /usr/bin/connect-client --install
 
 # Drop webtop's HTTPS server block from the nginx template. Platform terminates TLS
-# in front of the Studio, so the internal listener is dead weight — and keeping it
-# breaks startup: init-nginx rewrites ports with two chained seds
-# ("s/3000/$CUSTOM_PORT/" then "s/3001/$CUSTOM_HTTPS_PORT/"), so a CUSTOM_PORT of
-# 3001 gets substituted twice and both blocks land on one port, which makes nginx
-# demand a certificate on the plain-HTTP block and exit.
+# in front of the Studio, so the internal listener is dead weight and its
+# certificate generation is startup time spent on nothing. Note that init-nginx
+# rewrites ports with two chained seds ("s/3000/$CUSTOM_PORT/" then
+# "s/3001/$CUSTOM_HTTPS_PORT/"), so CUSTOM_PORT must never be set to 3001: it would
+# be substituted twice and land both blocks on one port.
 RUN awk '/^server \{/{n++} n<2' /defaults/default.conf > /defaults/default.conf.http \
     && mv /defaults/default.conf.http /defaults/default.conf \
     && ! grep -q 3001 /defaults/default.conf
@@ -79,9 +79,27 @@ RUN apt-get update \
         'Categories=System;Monitor;' \
         > /usr/share/applications/glxgears.desktop
 
+# svc-nginx sweeps leftover nginx processes with pgrep/pkill -f "[n]ginx:", and an
+# nginx master titles itself "nginx: master process ...", so that pattern matches the
+# studio proxy too and webtop would kill it on startup, unbinding the Studio port
+# exactly when Platform is probing it. Narrow the sweep to webtop's own master, which
+# is the only one launched from the absolute path. Keep the pattern space-free: two
+# of the four call sites pass it unquoted.
+RUN sed -i 's|\[n\]ginx:|[n]ginx:.*/usr/sbin/nginx|g' /etc/s6-overlay/s6-rc.d/svc-nginx/run \
+    && grep -q 'pgrep -f "\[n\]ginx:\.\*/usr/sbin/nginx"' /etc/s6-overlay/s6-rc.d/svc-nginx/run \
+    && ! grep -qE '\[n\]ginx:($|[^.])' /etc/s6-overlay/s6-rc.d/svc-nginx/run
+
+# Bind the Studio port from the first moment s6 is up, ahead of the desktop. See
+# studio-proxy-run for why webtop's own nginx cannot own CONNECT_TOOL_PORT.
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-studio-proxy /etc/s6-overlay/s6-rc.d/user/contents.d
+COPY studio-proxy-run /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run
+RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
+    && echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-studio-proxy/type \
+    && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
+
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-# connect-client proxies plain HTTP to CONNECT_TOOL_PORT, so webtop's HTTP listener
-# must own that port. Pointing the HTTPS listener there instead makes nginx answer
-# the health probe with "400 Bad Request" and the Studio never starts.
-CMD ["/bin/bash", "-c", "set -euo pipefail; export CUSTOM_PORT=${CONNECT_TOOL_PORT:-3000}; echo \"[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} -> CUSTOM_PORT=$CUSTOM_PORT\"; exec /init"]
+# The studio proxy owns CONNECT_TOOL_PORT; webtop's own nginx stays on an internal
+# port. Keeping webtop off the Studio port is what stops connect-client from
+# SIGKILLing the tool ("exit status 137") while the desktop is still starting.
+CMD ["/bin/bash", "-c", "set -euo pipefail; export STUDIO_PROXY_PORT=${CONNECT_TOOL_PORT:-3000}; export WEBTOP_UPSTREAM_PORT=3000; if [ \"$STUDIO_PROXY_PORT\" = \"$WEBTOP_UPSTREAM_PORT\" ]; then export WEBTOP_UPSTREAM_PORT=3002; fi; export CUSTOM_PORT=\"$WEBTOP_UPSTREAM_PORT\"; echo \"[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT\"; exec /init"]
