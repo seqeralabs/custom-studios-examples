@@ -64,9 +64,21 @@ RUN awk '/^server \{/{n++} n<2' /defaults/default.conf > /defaults/default.conf.
 # backdrop encodes to almost nothing, where a photo backdrop is re-encoded on every
 # resize and behind every moving window.
 
-# glxgears gives a visible frame-rate demo for showing off stream responsiveness.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends mesa-utils \
+# Desktop and workflow tooling. mesa-utils is only for glxgears, which gives a visible
+# frame-rate demo for showing off stream responsiveness. default-jre-headless is Java 21
+# on trixie, which is what Nextflow needs.
+# /usr/share/man/man1 must exist first: the base image excludes man pages, and the JRE's
+# post-installation script calls update-alternatives, which fails with "error creating
+# symbolic link '/usr/share/man/man1/java.1.gz.dpkg-tmp'" and leaves the package
+# unconfigured.
+RUN mkdir -p /usr/share/man/man1 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        mesa-utils \
+        curl \
+        wget \
+        htop \
+        default-jre-headless \
     && rm -rf /var/lib/apt/lists/* \
     && printf '%s\n' \
         '[Desktop Entry]' \
@@ -78,6 +90,17 @@ RUN apt-get update \
         'Terminal=false' \
         'Categories=System;Monitor;' \
         > /usr/share/applications/glxgears.desktop
+
+# Nextflow. The launcher downloads its own distribution on first run, so NXF_HOME is a
+# shared world-writable path rather than the desktop user's home: PUID/PGID are set at
+# runtime by the base image, so a build-time chown would guess the wrong uid.
+ENV NXF_HOME="/opt/nextflow"
+RUN cd /usr/local/bin \
+    && curl -s https://get.nextflow.io | bash \
+    && chmod 0755 /usr/local/bin/nextflow \
+    && mkdir -p "$NXF_HOME" \
+    && chmod 1777 "$NXF_HOME" \
+    && test -x /usr/local/bin/nextflow
 
 # svc-nginx sweeps leftover nginx processes with pgrep/pkill -f "[n]ginx:", and an
 # nginx master titles itself "nginx: master process ...", so that pattern matches the
