@@ -1,0 +1,44 @@
+#!/bin/bash
+# Studio entrypoint: resolve ports, capture startup output, hand off to s6.
+#
+# Must exec /init as the final step: s6-overlay refuses to run as anything but the
+# process it was handed ("s6-overlay-suexec: fatal: can only run as pid 1"), so no
+# pipeline or wrapper may come between this script and /init. Redirections are fine,
+# a pipe is not.
+set -euo pipefail
+
+# The studio proxy owns CONNECT_TOOL_PORT and webtop's own nginx stays internal, so
+# the Studio port is bound before the desktop is ready. See studio-proxy-run.
+export STUDIO_PROXY_PORT="${CONNECT_TOOL_PORT:-3000}"
+export WEBTOP_UPSTREAM_PORT=3000
+if [ "$STUDIO_PROXY_PORT" = "$WEBTOP_UPSTREAM_PORT" ]; then
+    export WEBTOP_UPSTREAM_PORT=3002
+fi
+export CUSTOM_PORT="$WEBTOP_UPSTREAM_PORT"
+
+echo "[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT"
+
+# Send /init's output to the session's Fusion-mounted work directory. On a startup
+# failure the instance is terminated within seconds, before the CloudWatch agent ships
+# the container's stdout, so this is the only copy that outlives the session.
+#
+# Redirect to a plain file, never a pipe: s6-overlay's stage1 segfaults immediately if
+# stdout is a pipe, so "exec > >(tee ...)" kills the desktop before it starts. Writing
+# to a file costs the Platform log view its copy of the s6 output, which is the trade
+# for having any copy at all.
+# ponytail: debug scaffolding, drop this block once Studio startup is stable.
+log_dir="${STUDIO_DEBUG_DIR:-}"
+if [ -z "$log_dir" ]; then
+    log_dir=$(ls -d /fusion/s3/*/ 2>/dev/null | head -1) || log_dir=""
+fi
+log_dir="${log_dir%/}"
+
+if [ -n "$log_dir" ] && mkdir -p "${log_dir}/studio-debug" 2>/dev/null; then
+    # No append: S3 objects cannot be appended to, and the name is unique per session.
+    log_file="${log_dir}/studio-debug/init-$(date -u +%Y%m%dT%H%M%SZ).log"
+    echo "[studio] writing /init output to $log_file"
+    exec /init > "$log_file" 2>&1
+fi
+
+echo "[studio] no Fusion mount under /fusion/s3, leaving /init output on stdout"
+exec /init

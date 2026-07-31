@@ -97,9 +97,9 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
     && echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-studio-proxy/type \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
 
+COPY studio-entry /usr/local/bin/studio-entry
+RUN chmod +x /usr/local/bin/studio-entry
+
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
-# The studio proxy owns CONNECT_TOOL_PORT; webtop's own nginx stays on an internal
-# port. Keeping webtop off the Studio port is what stops connect-client from
-# SIGKILLing the tool ("exit status 137") while the desktop is still starting.
-CMD ["/bin/bash", "-c", "set -euo pipefail; export STUDIO_PROXY_PORT=${CONNECT_TOOL_PORT:-3000}; export WEBTOP_UPSTREAM_PORT=3000; if [ \"$STUDIO_PROXY_PORT\" = \"$WEBTOP_UPSTREAM_PORT\" ]; then export WEBTOP_UPSTREAM_PORT=3002; fi; export CUSTOM_PORT=\"$WEBTOP_UPSTREAM_PORT\"; echo \"[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT\"; exec /init"]
+CMD ["/usr/local/bin/studio-entry"]
