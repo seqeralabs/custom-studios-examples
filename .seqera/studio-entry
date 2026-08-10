@@ -1,5 +1,5 @@
 #!/bin/bash
-# Studio entrypoint: resolve ports, capture startup output, hand off to s6.
+# Studio entrypoint: resolve ports, then hand off to s6.
 set -euo pipefail
 
 # The studio proxy owns CONNECT_TOOL_PORT and webtop's own nginx stays internal, so
@@ -12,27 +12,6 @@ fi
 export CUSTOM_PORT="$WEBTOP_UPSTREAM_PORT"
 
 echo "[studio] CONNECT_TOOL_PORT=${CONNECT_TOOL_PORT:-UNSET} proxy=$STUDIO_PROXY_PORT upstream=$CUSTOM_PORT pid=$$"
-
-# Send /init's output to the session's Fusion-mounted work directory. On a startup
-# failure the instance is terminated within seconds, before the CloudWatch agent ships
-# the container's stdout, so this is the only copy that outlives the session.
-#
-# Redirect to a plain file, never a pipe: s6-overlay's stage1 segfaults immediately if
-# stdout is a pipe, so "exec > >(tee ...)" kills the desktop before it starts.
-#
-# STUDIO_DEBUG_DIR must name the bucket path outright. Fusion serves
-# /fusion/s3/<bucket>/<key> on demand but does not enumerate buckets at /fusion/s3/,
-# so globbing for the mount finds nothing and silently disables capture. mkdir errors
-# are left on stderr on purpose.
-# ponytail: debug scaffolding, delete this block once Studio startup is stable.
-log_dir="${STUDIO_DEBUG_DIR:-}"
-log_dir="${log_dir%/}"
-if [ -n "$log_dir" ] && mkdir -p "${log_dir}/studio-debug"; then
-    # No append: S3 objects cannot be appended to, and the name is unique per session.
-    log_file="${log_dir}/studio-debug/init-$(date -u +%Y%m%dT%H%M%SZ).log"
-    echo "[studio] writing s6 output to $log_file"
-    exec > "$log_file" 2>&1
-fi
 
 # Hand off to s6-overlay.
 #

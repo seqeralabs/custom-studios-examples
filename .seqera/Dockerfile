@@ -112,10 +112,6 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
 COPY studio-entry /usr/local/bin/studio-entry
 RUN chmod +x /usr/local/bin/studio-entry
 
-# Where studio-entry writes /init's output so it outlives the terminated instance.
-# ponytail: debug scaffolding, delete with the block in studio-entry.
-ENV STUDIO_DEBUG_DIR="/fusion/s3/scidev-playground-eu-west-1"
-
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
 CMD ["/usr/local/bin/studio-entry"]
