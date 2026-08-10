@@ -18,13 +18,15 @@ This repository uses a **branch-per-studio** model (similar to [nf-core/test-dat
 | [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
 | [`shinyngs`](https://github.com/seqeralabs/custom-studios-examples/tree/shinyngs) | Shinyngs | RNA-seq exploration with the `shinyngs` R package |
 | [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
+| [`kasmvnc-qupath`](https://github.com/seqeralabs/custom-studios-examples/tree/kasmvnc-qupath) | QuPath | Bioimage analysis desktop app streamed with KasmVNC |
+| [`selkies-webtop`](https://github.com/seqeralabs/custom-studios-examples/tree/selkies-webtop) | Selkies Webtop | Full Debian XFCE desktop streamed with Selkies |
 
 ## Quick Start: Launch from Git Repository
 
 1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
 2. Select **Git repository** as the source
 3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
-4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`)
+4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`, `kasmvnc-qupath`, `selkies-webtop`)
 5. Select your compute environment
 6. Click **Add** then **Start**
 
@@ -35,7 +37,7 @@ Each branch contains a `.seqera/` directory with:
 
 ## Alternative Deployment: Pre-built Images
 
-Each studio is also available as a pre-built container image:
+These studios are also available as pre-built container images:
 
 ```
 ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
@@ -47,6 +49,8 @@ ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
 ```
 
 To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
+
+The desktop studios (`kasmvnc-qupath`, `selkies-webtop`) have no pre-built image; add them from their Git branch, or build them with the Wave CLI.
 
 ## Alternative Deployment: Wave CLI
 
@@ -88,6 +92,8 @@ Some studios support environment variable configuration:
 | Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
 
 Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations.
+
+The desktop studios expose display and streaming variables instead of data paths — QuPath's interface scale and KasmVNC frame rate and compression, and Selkies' DPI and startup behavior. Those are documented in the [`kasmvnc-qupath`](https://github.com/seqeralabs/custom-studios-examples/blob/kasmvnc-qupath/README.md) and [`selkies-webtop`](https://github.com/seqeralabs/custom-studios-examples/blob/selkies-webtop/README.md) branch READMEs.
 
 ## Common Features
 
