@@ -1,0 +1,35 @@
+# Sourced by /usr/bin/chromium, which is Debian's launcher script: it clears
+# CHROMIUM_FLAGS, sources every /etc/chromium.d/* file except README and *.dpkg*, then
+# execs /usr/lib/chromium/chromium with the accumulated flags. Appending here therefore
+# reaches every launch path — the XFCE menu entry, xdg-open, and a shell — and does not
+# depend on webtop's wrapped-chromium, which the base image owns and may change.
+#
+# Not executable and not a shebang script on purpose: it is sourced by /bin/sh.
+
+# Chromium cannot use its own sandbox in this container. Debian's chromium package
+# ships no setuid /usr/lib/chromium/chrome-sandbox helper, so the zygote has only the
+# unprivileged namespace sandbox, which needs CLONE_NEWUSER. When that clone is refused
+# chromium prints "Failed to move to new namespace" and exits before mapping a window.
+#
+# Webtop's wrapped-chromium is supposed to cover this: it passes --no-sandbox when it
+# decides the container is unprivileged. It decides by grepping /proc/1/status for
+# "Seccomp:\t0", treating an unconfined seccomp profile as proof that the sandbox will
+# work. The Studio container runs privileged (it needs loop devices, btrfs and FUSE), so
+# that grep matches and the flag is withheld — the one case where the desktop starts but
+# the browser silently will not. Pass it unconditionally instead.
+#
+# --test-type only suppresses the "unsupported command-line flag" infobar that
+# --no-sandbox otherwise pins to the top of every window.
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --test-type"
+
+# /dev/shm is sized by whatever runs the container, not by the image, and Docker's
+# default is 64MB against the 1GB upstream's own compose file asks for. Chromium puts
+# renderer transport surfaces there and tabs die once it fills. The image cannot resize
+# the mount, so fall back to files under /tmp when it is small. Kept conditional because
+# the fallback is slower: a compute environment that does provide a large /dev/shm keeps
+# the shared-memory path.
+chromium_shm_kb="$(df -k /dev/shm 2>/dev/null | awk 'NR==2 {print $2}')"
+if [ -n "$chromium_shm_kb" ] && [ "$chromium_shm_kb" -lt 262144 ]; then
+    export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --disable-dev-shm-usage"
+fi
+unset chromium_shm_kb

@@ -91,6 +91,18 @@ RUN mkdir -p /usr/share/man/man1 \
         'Categories=System;Monitor;' \
         > /usr/share/applications/glxgears.desktop
 
+# Chromium comes from the base image, but cannot launch under Studios without extra
+# flags. See chromium-studio-flags for why, and why the flags go here rather than into
+# webtop's wrapped-chromium. The assertions pin the two things the fix relies on: that
+# /usr/bin/chromium is still Debian's launcher script, and that it still sources
+# /etc/chromium.d — if a base image ever ships chromium as the raw binary instead, this
+# file would be ignored and the browser would fail silently again.
+COPY chromium-studio-flags /etc/chromium.d/zz-studio-flags
+RUN test -f /etc/chromium.d/default-flags \
+    && grep -q '/etc/chromium.d' /usr/bin/chromium \
+    && grep -q 'CHROMIUM_FLAGS' /usr/bin/chromium \
+    && sh -n /etc/chromium.d/zz-studio-flags
+
 # Nextflow. The launcher downloads its own distribution on first run, so NXF_HOME is a
 # shared world-writable path rather than the desktop user's home: PUID/PGID are set at
 # runtime by the base image, so a build-time chown would guess the wrong uid.
