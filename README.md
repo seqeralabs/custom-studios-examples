@@ -1,6 +1,6 @@
-# QuPath KasmVNC Studio Environment
+# napari KasmVNC Studio Environment
 
-This branch contains the Seqera Studios configuration for running [QuPath](https://qupath.github.io/) through [KasmVNC](https://kasmweb.com/kasmvnc).
+This branch contains the Seqera Studios configuration for running [napari](https://napari.org/) through [KasmVNC](https://kasmweb.com/kasmvnc).
 
 > This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
@@ -9,7 +9,7 @@ This branch contains the Seqera Studios configuration for running [QuPath](https
 1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace.
 2. Select **Git repository** as the source.
 3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`.
-4. Select branch: `kasmvnc-qupath`.
+4. Select branch: `kasmvnc-napari`.
 5. Select your compute environment.
 6. Click **Add**, then **Start**.
 
@@ -24,7 +24,7 @@ session:
     dockerfile: "Dockerfile"
 ```
 
-QuPath is x86_64 only, so run this Studio on `linux/amd64` compatible compute.
+Build and run this Studio on `linux/amd64` compatible compute.
 
 ## Alternative: Build with Wave CLI
 
@@ -32,25 +32,53 @@ QuPath is x86_64 only, so run this Studio on `linux/amd64` compatible compute.
 wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --tower-token "$TOWER_ACCESS_TOKEN"
 ```
 
+## Local Docker test
+
+Build the image:
+
+```bash
+docker build --platform linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=0.9 \
+  -t kasmvnc-napari .seqera
+```
+
+Run s6 directly to bypass `connect-client` and Fusion outside Seqera Platform:
+
+```bash
+docker run --rm --platform linux/amd64 \
+  -p 6901:8080 \
+  -e STUDIO_PROXY_PORT=8080 \
+  -e KASMVNC_UPSTREAM_PORT=3000 \
+  -e CUSTOM_PORT=3000 \
+  -e CUSTOM_HTTPS_PORT=3001 \
+  --entrypoint /init \
+  kasmvnc-napari
+```
+
+Open [http://localhost:6901](http://localhost:6901). In Seqera Platform, keep the image entrypoint unchanged so `connect-client` can mount Fusion data.
+
+The image targets `linux/amd64`. On Apple Silicon, Docker runs it through CPU emulation; use an x86_64 Docker host if LinuxServer's s6 init scripts crash under QEMU.
+
 ## Features
 
-- QuPath 0.6.0 bioimage analysis desktop
+- napari 0.8.0 multidimensional image viewer
 - Browser access through LinuxServer.io KasmVNC
-- Single-app mode that launches QuPath directly
+- Single-app mode that launches napari directly
 - A desktop that expands to fill the browser window
-- A 1.5× QuPath interface scale so controls remain readable on large displays
+- Mesa software rendering for compute environments without a GPU
 - 30 FPS streaming, four compression threads, and high-quality text updates for responsive interaction
 - Startup proxy that serves a loading page until KasmVNC is ready, avoiding first-load 502 errors
+- Fusion-mounted data available from napari's file browser under `/workspace/data/`
 
 ## Display and streaming defaults
 
-KasmVNC resizes the remote desktop to fill the browser window. QuPath's JavaFX interface is scaled independently, so the extra space does not make its menus and controls too small.
+KasmVNC resizes the remote desktop to fill the browser window. napari uses Mesa software rendering by default so it also works when compute does not expose a GPU.
 
 For a different environment, override any of these Studio environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `QUPATH_UI_SCALE` | `1.5` | QuPath interface scale; use `1.0` for standard density or increase it for high-density displays |
+| `LIBGL_ALWAYS_SOFTWARE` | `1` | Use Mesa software rendering; set to `0` only when compatible GPU rendering is available |
 | `KASMVNC_FRAME_RATE` | `30` | Maximum streamed frames per second |
 | `KASMVNC_RECT_THREADS` | `4` | Parallel compression threads |
 | `KASMVNC_DYNAMIC_QUALITY_MIN` | `7` | Lowest quality used while the screen is changing |
@@ -60,5 +88,5 @@ For a different environment, override any of these Studio environment variables:
 
 - [Seqera Studios: Import from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
 - [Seqera Studios: Custom environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
-- [QuPath Documentation](https://qupath.readthedocs.io/)
+- [napari Documentation](https://napari.org/stable/)
 - [KasmVNC Documentation](https://kasmweb.com/kasmvnc)

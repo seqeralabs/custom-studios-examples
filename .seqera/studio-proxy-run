@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bash
 set -euo pipefail
 
-studio_port="${STUDIO_PROXY_PORT:-${CONNECT_TOOL_PORT:-6901}}"
+studio_port="${STUDIO_PROXY_PORT:-${CONNECT_TOOL_PORT:-8080}}"
 upstream_port="${KASMVNC_UPSTREAM_PORT:-${CUSTOM_PORT:-3000}}"
 nginx_root="/tmp/studio-nginx"
 
@@ -59,7 +59,7 @@ http {
             internal;
             default_type text/html;
             add_header Cache-Control "no-store" always;
-            return 200 '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>Starting QuPath</title><style>body{font-family:sans-serif;margin:3rem;color:#1f2933}main{max-width:40rem}.spinner{width:2rem;height:2rem;border:.3rem solid #d9e2ec;border-top-color:#2684ff;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body><main><div class="spinner"></div><h1>Starting QuPath...</h1><p>The desktop is still warming up. This page will refresh automatically.</p></main></body></html>';
+            return 200 '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>Starting napari</title><style>body{font-family:sans-serif;margin:3rem;color:#1f2933}main{max-width:40rem}.spinner{width:2rem;height:2rem;border:.3rem solid #d9e2ec;border-top-color:#2684ff;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body><main><div class="spinner"></div><h1>Starting napari...</h1><p>The desktop is still warming up. This page will refresh automatically.</p></main></body></html>';
         }
     }
 }
