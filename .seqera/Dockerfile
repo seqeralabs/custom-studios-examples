@@ -5,51 +5,47 @@ ARG CONNECT_CLIENT_VERSION=0.9
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # ---------------------------------------------------------------
-# 2) KasmVNC base image with QuPath
+# 2) KasmVNC base image with Fiji
 # ---------------------------------------------------------------
 FROM lscr.io/linuxserver/baseimage-kasmvnc:ubuntujammy
 
 # Just for the automation at Seqera
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
 
-ENV TITLE="QuPath"
+ENV TITLE="Fiji"
 
-# The remote desktop follows the browser size. QuPath's interface is scaled
-# separately by the launcher, so controls remain readable on large displays.
-ENV QUPATH_UI_SCALE=1.5 \
-    KASMVNC_FRAME_RATE=30 \
+# The remote desktop follows the browser size. Keep KasmVNC settings
+# overridable for different Studio compute environments.
+ENV KASMVNC_FRAME_RATE=30 \
     KASMVNC_RECT_THREADS=4 \
     KASMVNC_DYNAMIC_QUALITY_MIN=7 \
     KASMVNC_DYNAMIC_QUALITY_MAX=8
 
-# Install dependencies for QuPath. The base image can carry stale third-party apt
+# Install dependencies for Fiji. The base image can carry stale third-party apt
 # sources, so drop NodeSource before refreshing Ubuntu package indexes.
 RUN rm -f /etc/apt/sources.list.d/nodesource*.list \
     && apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     wget \
-    xz-utils \
+    unzip \
     libgl1 \
     libgtk-3-0 \
-    libopenslide0 \
+    fontconfig \
     libglib2.0-0 \
+    libxtst6 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install QuPath
-ARG QUPATH_VERSION="0.6.0"
-RUN wget -q https://github.com/qupath/qupath/releases/download/v${QUPATH_VERSION}/QuPath-v${QUPATH_VERSION}-Linux.tar.xz -O /tmp/qupath.tar.xz \
-    && mkdir -p /opt/qupath \
-    && tar -xf /tmp/qupath.tar.xz -C /opt/qupath --strip-components=1 \
-    && chmod +x /opt/qupath/bin/QuPath \
-    && rm /tmp/qupath.tar.xz
-
-# Scale QuPath's JavaFX interface without constraining the remote desktop.
-RUN printf '%s\n' \
-    '#!/usr/bin/env bash' \
-    'export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dglass.gtk.uiScale=${QUPATH_UI_SCALE:-1.5}"' \
-    'exec /opt/qupath/bin/QuPath "$@"' \
-    > /usr/local/bin/start-qupath \
-    && chmod +x /usr/local/bin/start-qupath
+# Install pinned Fiji stable distribution with bundled Java runtime.
+ARG FIJI_BUILD="20260307-1417"
+RUN wget -q "https://downloads.imagej.net/fiji/archive/stable/${FIJI_BUILD}/fiji-stable-linux64-jdk.zip" -O /tmp/fiji.zip \
+    && wget -q "https://downloads.imagej.net/fiji/archive/stable/${FIJI_BUILD}/fiji-stable-linux64-jdk.zip.sha256" -O /tmp/fiji.zip.sha256 \
+    && echo "$(cat /tmp/fiji.zip.sha256)  /tmp/fiji.zip" | sha256sum -c - \
+    && mkdir -p /opt/fiji \
+    && unzip -q /tmp/fiji.zip -d /opt/fiji \
+    && chmod +x /opt/fiji/Fiji.app/ImageJ-linux64 \
+    && chown -R abc:abc /opt/fiji \
+    && rm /tmp/fiji.zip /tmp/fiji.zip.sha256
 
 # Override the base image's KasmVNC service with settings it actually consumes.
 COPY kasmvnc-run /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
@@ -65,7 +61,7 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
 
 # Single-app mode: application launches directly, no desktop.
-RUN echo "/usr/local/bin/start-qupath" > /defaults/autostart
+RUN echo "/opt/fiji/Fiji.app/ImageJ-linux64" > /defaults/autostart
 
 # ---------------------------------------------------------------
 # 3) Seqera Studios integration
