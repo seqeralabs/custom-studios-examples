@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Launch napari from its isolated conda environment.
+#
+# Do not set HOME to /workspace here or in the Dockerfile: LinuxServer's
+# init-kasmvnc-config copies /defaults/autostart to the hardcoded path
+# /config/.config/openbox/autostart, while openbox-autostart reads
+# ${XDG_CONFIG_HOME:-$HOME/.config}/openbox/autostart. Overriding HOME breaks
+# that pairing and the Studio never starts an application.
+set -euo pipefail
+
+export PATH="/opt/conda/envs/napari/bin:${PATH}"
+
+# Start in the Studio workspace so file dialogs open on Fusion-mounted data.
+cd /workspace 2>/dev/null || cd "${HOME}"
+
+exec /opt/conda/envs/napari/bin/napari "$@"

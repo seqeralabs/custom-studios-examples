@@ -64,13 +64,12 @@ The image targets `linux/amd64`. On Apple Silicon, Docker runs it through CPU em
 - napari 0.8.0 multidimensional image viewer
 - Browser access through LinuxServer.io KasmVNC
 - Single-app mode that launches napari directly
-- Full-screen startup indicator that remains visible until the napari window is ready
 - A desktop that expands to fill the browser window
 - Mesa software rendering for compute environments without a GPU
 - 30 FPS streaming, four compression threads, and high-quality text updates for responsive interaction
 - Startup proxy that serves a loading page until KasmVNC is ready, avoiding first-load 502 errors
 - Fusion-mounted data available from napari's file browser under `/workspace/data/`
-- `HOME=/workspace` so user settings and file dialogs start in the Studio workspace
+- napari starts in `/workspace`, so file dialogs open on the Studio workspace
 
 ## Display and streaming defaults
 

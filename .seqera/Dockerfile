@@ -52,8 +52,8 @@ RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest \
         pyqt6 \
     && micromamba clean --all --yes
 
-COPY napari-launcher.py /usr/local/bin/napari-launcher
-RUN chmod +x /usr/local/bin/napari-launcher
+COPY start-napari /usr/local/bin/start-napari
+RUN chmod +x /usr/local/bin/start-napari
 
 # Override the base image's KasmVNC service with settings it actually consumes.
 COPY kasmvnc-run /etc/s6-overlay/s6-rc.d/svc-kasmvnc/run
@@ -68,8 +68,11 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
     && mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
 
-# Single-app mode: show a loading screen until the napari window is ready.
-RUN echo "/usr/local/bin/napari-launcher" > /defaults/autostart
+# Single-app mode: openbox launches napari directly, no desktop.
+# openbox-autostart reads ${XDG_CONFIG_HOME:-$HOME/.config}/openbox/autostart,
+# which the base image populates from /defaults/autostart under HOME=/config.
+# Keep HOME at the base image default so that pairing holds.
+RUN echo "/usr/local/bin/start-napari" > /defaults/autostart
 
 # ---------------------------------------------------------------
 # 3) Seqera Studios integration
@@ -87,8 +90,6 @@ COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 RUN /usr/bin/connect-client --install \
     && mkdir -p /workspace \
     && chown -R abc:abc /config /defaults /workspace
-
-ENV HOME=/workspace
 
 # Seqera Studios entrypoint (connect-client handles Fusion filesystem)
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
