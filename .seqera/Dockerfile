@@ -60,8 +60,14 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/svc-studio-proxy/run \
     && mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-studio-proxy
 
-# Single-app mode: application launches directly, no desktop.
-RUN echo "/opt/fiji/Fiji.app/ImageJ-linux64" > /defaults/autostart
+COPY start-fiji /usr/local/bin/start-fiji
+RUN chmod +x /usr/local/bin/start-fiji
+
+# Single-app mode: openbox launches Fiji directly, no desktop.
+# openbox-autostart reads ${XDG_CONFIG_HOME:-$HOME/.config}/openbox/autostart,
+# which the base image populates from /defaults/autostart under HOME=/config.
+# Keep HOME at the base image default so that pairing holds.
+RUN echo "/usr/local/bin/start-fiji" > /defaults/autostart
 
 # ---------------------------------------------------------------
 # 3) Seqera Studios integration
@@ -79,8 +85,6 @@ RUN /usr/bin/connect-client --install
 
 RUN mkdir -p /workspace \
     && chown abc:abc /workspace
-
-ENV HOME=/workspace
 
 # Seqera Studios entrypoint (connect-client handles Fusion filesystem)
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]

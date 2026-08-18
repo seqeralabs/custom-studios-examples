@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Launch Fiji from its bundled Java runtime.
+#
+# Do not set HOME to /workspace here or in the Dockerfile: LinuxServer's
+# init-kasmvnc-config copies /defaults/autostart to the hardcoded path
+# /config/.config/openbox/autostart, while openbox-autostart reads
+# ${XDG_CONFIG_HOME:-$HOME/.config}/openbox/autostart. Overriding HOME breaks
+# that pairing and the Studio never starts an application.
+set -euo pipefail
+
+# Start in the Studio workspace so file dialogs open on Fusion-mounted data.
+cd /workspace 2>/dev/null || cd "${HOME}"
+
+exec /opt/fiji/Fiji.app/ImageJ-linux64 "$@"
