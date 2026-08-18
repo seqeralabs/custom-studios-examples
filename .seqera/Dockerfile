@@ -77,6 +77,11 @@ COPY --from=connect /usr/bin/connect-client /usr/bin/connect-client
 # Install connect-client
 RUN /usr/bin/connect-client --install
 
+RUN mkdir -p /workspace \
+    && chown abc:abc /workspace
+
+ENV HOME=/workspace
+
 # Seqera Studios entrypoint (connect-client handles Fusion filesystem)
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
 
