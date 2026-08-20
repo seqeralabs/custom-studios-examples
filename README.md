@@ -1,6 +1,6 @@
 # napari KasmVNC Studio Environment
 
-This branch contains the Seqera Studios configuration for running [napari](https://napari.org/) through [KasmVNC](https://kasmweb.com/kasmvnc).
+This branch contains the Seqera Studios configuration for running [napari](https://napari.org/) with the [SpatialData](https://spatialdata.scverse.org/) plugin through [KasmVNC](https://kasmweb.com/kasmvnc).
 
 > This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
@@ -62,6 +62,8 @@ The image targets `linux/amd64`. On Apple Silicon, Docker runs it through CPU em
 ## Features
 
 - napari 0.8.0 multidimensional image viewer
+- `napari-spatialdata` plugin for interactive spatial omics exploration
+- Full SpatialData read stack: `spatialdata`, `spatialdata-io`, `spatialdata-plot`
 - Browser access through LinuxServer.io KasmVNC
 - Single-app mode that launches napari directly
 - A desktop that expands to fill the browser window
@@ -70,6 +72,37 @@ The image targets `linux/amd64`. On Apple Silicon, Docker runs it through CPU em
 - Startup proxy that serves a loading page until KasmVNC is ready, avoiding first-load 502 errors
 - Fusion-mounted data available from napari's file browser under `/workspace/data/`
 - napari starts in `/workspace`, so file dialogs open on the Studio workspace
+
+## Reading spatial data
+
+The image ships the whole scverse SpatialData stack, so the Studio reads spatial
+objects with no further installation.
+
+Open a stored SpatialData object from the napari console:
+
+```python
+from spatialdata import read_zarr
+sdata = read_zarr("/workspace/data/<link_name>/experiment.zarr")
+```
+
+Convert a vendor output to SpatialData with a `spatialdata-io` reader, then view it:
+
+```python
+from spatialdata_io import xenium
+sdata = xenium("/workspace/data/<link_name>/xenium_output/")
+sdata.write("/workspace/experiment.zarr")
+```
+
+Then open **Plugins > napari-spatialdata** to browse elements, tables, and
+annotations interactively.
+
+Readers cover 10x Xenium, 10x Visium, Visium HD, Vizgen MERSCOPE, NanoString
+CosMx, Akoya PhenoCycler, and others. Run
+`python -c "import spatialdata_io; print(dir(spatialdata_io))"` in the Studio for
+the list that this image resolved. The image build prints the same list.
+
+MERSCOPE mosaics can exhaust memory on small compute. Pass
+`merscope(..., backend="rioxarray")` to lower RAM use.
 
 ## Display and streaming defaults
 
@@ -90,4 +123,7 @@ For a different environment, override any of these Studio environment variables:
 - [Seqera Studios: Import from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
 - [Seqera Studios: Custom environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
 - [napari Documentation](https://napari.org/stable/)
+- [SpatialData Documentation](https://spatialdata.scverse.org/)
+- [napari-spatialdata](https://spatialdata.scverse.org/projects/napari/)
+- [spatialdata-io readers](https://spatialdata.scverse.org/projects/io/)
 - [KasmVNC Documentation](https://kasmweb.com/kasmvnc)

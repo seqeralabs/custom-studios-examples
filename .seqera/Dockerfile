@@ -41,7 +41,18 @@ RUN rm -f /etc/apt/sources.list.d/nodesource*.list \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install napari and its Qt backend in an isolated Python 3.11 environment.
+# Install napari, its Qt backend, and the SpatialData stack in an isolated
+# Python 3.11 environment.
+#
+# Resolve everything in one solve so that a conda-forge SpatialData build that
+# disagrees with the pinned napari fails the image build instead of failing at
+# runtime.
+#
+# napari discovers plugins through entry points in its own environment, so
+# installing napari-spatialdata here is enough to expose it in the Plugins menu.
+#
+# The SpatialData packages stay unpinned. conda-forge lags the PyPI releases,
+# and a second pin here makes the solve fail more often than it helps.
 ARG NAPARI_VERSION="0.8.0"
 RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest \
     | tar -xj --strip-components=1 bin/micromamba \
@@ -50,7 +61,36 @@ RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest \
         python=3.11 \
         napari=${NAPARI_VERSION} \
         pyqt6 \
+        spatialdata \
+        spatialdata-io \
+        spatialdata-plot \
+        napari-spatialdata \
+        zarr \
+        ome-zarr \
+        anndata \
+        pyarrow \
+        tifffile \
+        imagecodecs \
+        dask-image \
+        rioxarray \
+        geopandas \
     && micromamba clean --all --yes
+
+# Fail the build if the solve produced an environment that cannot read
+# SpatialData objects. A broken plugin environment produces no startup error that
+# the Studio can show, so catch it here. Run Qt offscreen: the build has no X
+# display, and these imports pull in Qt widget classes.
+#
+# Print the reader list instead of asserting each name. The build log then records
+# which readers the resolved spatialdata-io actually ships.
+RUN QT_QPA_PLATFORM=offscreen micromamba run -n napari python -c "\
+import napari, napari_spatialdata, spatialdata, spatialdata_io, spatialdata_plot; \
+import zarr, ome_zarr, anndata, geopandas, pyarrow, tifffile, imagecodecs; \
+import dask_image, rioxarray; \
+from spatialdata import read_zarr; \
+print('napari', napari.__version__); \
+print('spatialdata', spatialdata.__version__); \
+print('readers', sorted(n for n in dir(spatialdata_io) if not n.startswith('_')))"
 
 COPY start-napari /usr/local/bin/start-napari
 RUN chmod +x /usr/local/bin/start-napari
