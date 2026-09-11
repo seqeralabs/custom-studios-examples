@@ -50,7 +50,7 @@ The image targets `linux/amd64`. In Seqera Platform, keep the image entrypoint u
 ## Features
 
 - Wayland-native streaming (Labwc + Waymote 0.1.4) instead of VNC
-- Browser UI with H.264 video, keyboard/pointer forwarding, and text clipboard sync
+- Browser UI with H.264 video and keyboard/pointer forwarding
 - `foot` terminal and `pcmanfm` rooted at `/workspace` for Fusion-mounted data (`/workspace/data/`)
 - Software compositor (`pixman`) and `libx264` encoder — no GPU required
 - Super+Return (terminal) and Super+E (file manager)
@@ -71,6 +71,7 @@ The gateway listens on `$CONNECT_TOOL_PORT`. `-public-url` is left unset so WebS
 
 - Encoding is software (`libx264`). CPU usage scales with resolution, frame rate, and bitrate.
 - Waymote does not authenticate sessions. Platform terminates TLS and gates access.
+- Clipboard sync needs `ext_data_control_manager_v1`. Debian Trixie's Labwc 0.8.3 does not advertise that protocol, so the gateway logs `clipboard unavailable`. Capture, input, and audio still work.
 - Labwc config lives in `.seqera/labwc/` and is installed to `/etc/xdg/labwc/` in the image.
 
 ## References
