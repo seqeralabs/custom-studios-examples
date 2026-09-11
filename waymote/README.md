@@ -32,7 +32,7 @@ For specific versions, use the release tag (e.g. `ghcr.io/seqeralabs/custom-stud
 ## Features
 
 - Wayland-native streaming (Labwc + Waymote 0.1.4) instead of VNC
-- Browser UI with H.264 video, keyboard/pointer forwarding, and text clipboard sync
+- Browser UI with H.264 video and keyboard/pointer forwarding
 - `foot` terminal and `pcmanfm` rooted at `/workspace` for Fusion data
 - Software compositor (`pixman`) and `libx264` encoder — no GPU required
 - Tunable output size, frame rate, and bitrate via Studio environment variables
@@ -101,7 +101,8 @@ The gateway listens on `$CONNECT_TOOL_PORT` (set by Studios). `-public-url` is l
 
 - Encoding is software (`libx264`) and the compositor uses `pixman`. Expect CPU usage to scale with resolution, frame rate, and bitrate.
 - Waymote does not authenticate sessions. Seqera Platform terminates TLS and gates access; do not publish this container's port on an untrusted network.
-- Clipboard sync is text-only. Audio needs a user gesture in the browser (`session.audio.enable()` in the bundled UI).
+- Clipboard sync is text-only and needs `ext_data_control_manager_v1`. Debian Trixie's Labwc 0.8.3 does not advertise that protocol, so the gateway logs `clipboard unavailable` and clipboard buttons stay disconnected. Capture, input, and audio still work.
+- Audio needs a user gesture in the browser (`Enable audio` in the bundled UI).
 - Labwc autostart lives in `/etc/xdg/labwc/`. Replace or extend those files to launch a different desktop application.
 
 ## References
