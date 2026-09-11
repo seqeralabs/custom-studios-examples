@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <core>
+    <decoration>server</decoration>
+    <gap>8</gap>
+  </core>
+  <keyboard>
+    <default />
+    <keybind key="W-Return">
+      <action name="Execute" command="foot" />
+    </keybind>
+    <keybind key="W-e">
+      <action name="Execute" command="pcmanfm /workspace" />
+    </keybind>
+  </keyboard>
+</labwc_config>

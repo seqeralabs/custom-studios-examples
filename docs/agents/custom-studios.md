@@ -126,6 +126,9 @@ CMD streamlit run /app/multiqc_app.py \
 
 # TTYD (this repo)
 CMD ["/usr/bin/bash", "-c", "ttyd -W -p $CONNECT_TOOL_PORT bash"]
+
+# Waymote (this repo) — start-waymote binds waymote-gateway to CONNECT_TOOL_PORT
+CMD ["/usr/local/bin/start-waymote"]
 ```
 
 Always listen on `0.0.0.0` (not `127.0.0.1`) for web apps.
@@ -204,6 +207,11 @@ Variables defined in the Dockerfile can be overridden at Studio launch in Platfo
 | CellxGene | `USER_DATA_DIR` | `/user-data/cellxgene` | User-generated data |
 | CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations |
 | Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Input CSV |
+| Waymote | `WAYMOTE_WIDTH` | `1280` | Fixed Labwc output width |
+| Waymote | `WAYMOTE_HEIGHT` | `720` | Fixed Labwc output height |
+| Waymote | `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder FPS |
+| Waymote | `WAYMOTE_BITRATE` | `8000` | Encoder bitrate (kbps) |
+| Waymote | `WAYMOTE_XKB_LAYOUT` | `us` | Keyboard layout |
 
 Marimo, Streamlit, Shinyngs, and TTYD use defaults only (no required env vars).
 
@@ -244,6 +252,7 @@ ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
 ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
 ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
 ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
+ghcr.io/seqeralabs/custom-studios-examples/waymote:latest
 ```
 
 ### Git repository deployment (branch-per-studio)
@@ -308,6 +317,7 @@ Reference implementations to copy:
 | Python + input file env vars | `cellxgene/Dockerfile` |
 | R Shiny + CSV data | `shiny-simple-example/` |
 | Terminal in existing tool image | `ttyd/Dockerfile` |
+| Wayland desktop in the browser | `waymote/` |
 
 ---
 

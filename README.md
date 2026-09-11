@@ -18,13 +18,14 @@ This repository uses a **branch-per-studio** model (similar to [nf-core/test-dat
 | [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
 | [`shinyngs`](https://github.com/seqeralabs/custom-studios-examples/tree/shinyngs) | Shinyngs | RNA-seq exploration with the `shinyngs` R package |
 | [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
+| [`waymote`](https://github.com/seqeralabs/custom-studios-examples/tree/waymote) | Waymote | Wayland desktop streamed to the browser with Waymote |
 
 ## Quick Start: Launch from Git Repository
 
 1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
 2. Select **Git repository** as the source
 3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
-4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`)
+4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`, `waymote`)
 5. Select your compute environment
 6. Click **Add** then **Start**
 
@@ -44,6 +45,7 @@ ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
 ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
 ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
 ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
+ghcr.io/seqeralabs/custom-studios-examples/waymote:latest
 ```
 
 To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
@@ -86,8 +88,12 @@ Some studios support environment variable configuration:
 | CellxGene | `USER_DATA_DIR` | `/user-data/cellxgene` | User data storage |
 | CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations storage |
 | Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
+| Waymote | `WAYMOTE_WIDTH` | `1280` | Fixed remote desktop width |
+| Waymote | `WAYMOTE_HEIGHT` | `720` | Fixed remote desktop height |
+| Waymote | `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder frame rate |
+| Waymote | `WAYMOTE_BITRATE` | `8000` | Encoder bitrate in kbps |
 
-Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations.
+Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations. Waymote also accepts `WAYMOTE_XKB_LAYOUT` (default `us`).
 
 ## Common Features
 

@@ -13,6 +13,7 @@ on:
           - cellxgene
           - shiny
           - marimo
+          - waymote
       version:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
@@ -47,6 +48,7 @@ jobs:
             cellxgene) echo "path=./cellxgene" >> "$GITHUB_OUTPUT" ;;
             shiny) echo "path=./shiny-simple-example" >> "$GITHUB_OUTPUT" ;;
             marimo) echo "path=./marimo" >> "$GITHUB_OUTPUT" ;;
+            waymote) echo "path=./waymote" >> "$GITHUB_OUTPUT" ;;
           esac
 
       - name: Log in to the Container registry
