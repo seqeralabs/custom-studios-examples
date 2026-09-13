@@ -76,6 +76,24 @@ docker run --rm --platform linux/amd64 -p 3000:3000 \
 
 Open http://localhost:3000. Super+Return opens another terminal; Super+E opens the file manager.
 
+## Agent control
+
+Agents can drive Waymote without browser automation by connecting to the
+`/control` WebSocket. A client sends the text message `acquire`, waits for a
+`control-state` response with `state: "active"`, then sends the 16-byte
+little-endian pointer and keyboard records documented in the
+[Waymote wire protocol](https://github.com/rockorager/waymote/blob/main/docs/protocol.md).
+Only one client owns input at a time; other clients receive `state: "busy"`.
+
+This has been tested by sending Super+Return to Labwc, typing commands into the
+new terminal, and verifying their output independently from the rendered video.
+
+For a hosted Studio, the Connect proxy protects `/control` with the same
+`data-studio:view` OIDC session as the browser UI. A Seqera Platform API token
+can create and manage the Studio but does not authenticate a direct WebSocket
+client. Use an authenticated browser session or another approved Connect access
+path when controlling a hosted Studio.
+
 ## Using in Seqera Studios
 
 > [!NOTE]
