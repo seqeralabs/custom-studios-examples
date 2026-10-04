@@ -1,0 +1,11 @@
+schemaVersion: "0.0.1"
+kind: "studio-config"
+session:
+  description: "Pi Durable with Fusion-backed JSONL state"
+  template:
+    kind: "dockerfile"
+    dockerfile: "Dockerfile"
+  clone:
+    enabled: false
+  management:
+    isPrivate: true

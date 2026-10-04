@@ -1,0 +1,24 @@
+name: Test Pi Durable Studio
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.22.3'
+          cache: npm
+          cache-dependency-path: .seqera/package-lock.json
+      - name: Test persistence and HTTP
+        working-directory: .seqera
+        run: |
+          npm ci
+          npm test
+      - name: Build the Studio image
+        run: docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.14 -t pi-durable-studio .seqera

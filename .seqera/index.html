@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pi Durable · Seqera Studio</title>
+<style>
+body{font:16px system-ui;background:#f5f5f3;color:#222;max-width:960px;margin:32px auto;padding:0 20px}h1{margin-bottom:4px}p{line-height:1.5}#status{color:#555}article{background:white;border:1px solid #ddd;border-radius:8px;padding:16px;margin:12px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px ui-monospace,monospace}textarea{box-sizing:border-box;width:100%;min-height:100px;font:inherit;padding:12px}button,select{font:inherit;padding:8px 14px;margin:8px 8px 8px 0}button{cursor:pointer}#error{color:#a20}summary{cursor:pointer}
+</style>
+<h1>Pi Durable</h1>
+<p>Conversation and work files are stored on your mounted data link. Stop the Studio cleanly before opening this storage in another Studio.</p>
+<p id="status">Connecting…</p>
+<section id="transcript" aria-live="polite"></section>
+<form id="compose">
+<label for="message">Message</label>
+<textarea id="message" required placeholder="What would you like to work on?"></textarea>
+<select id="mode" aria-label="When the agent is busy"><option value="followUp">Queue follow-up</option><option value="steer">Steer current work</option></select>
+<button id="send">Send</button><button type="button" id="stop">Stop agent</button>
+</form>
+<p id="error" role="alert"></p>
+<details><summary>Live tools, queue and usage</summary><pre id="live"></pre></details>
+<script>
+const el = id => document.getElementById(id);
+let request, sending = false;
+async function post(path, data) {
+  const response = await fetch(path, {method:'POST',headers:{'Content-Type':'application/json','X-Pi-Studio':'1'},body:JSON.stringify(data)});
+  const value = await response.json();
+  if (!response.ok) throw new Error(value.error);
+  return value;
+}
+async function refresh() {
+  try {
+    const response = await fetch('api/state');
+    if (!response.ok) throw new Error('Cannot read Studio state');
+    const state = await response.json();
+    el('status').textContent = `${state.provider} / ${state.modelId} · ${state.ready ? 'Connected' : 'API key required; set it in the Studio environment and restart'}`;
+    el('send').disabled = !state.ready || sending;
+    el('stop').disabled = !state.ready;
+    const articles = state.entries.map(entry => {
+      const article = document.createElement('article');
+      const label = document.createElement('strong'); label.textContent = entry.kind;
+      const body = document.createElement('pre');
+      body.textContent = (entry.model ?? []).map(message => typeof message.content === 'string' ? message.content :
+        (message.content ?? []).map(part => part.text ?? (part.type === 'toolCall' ? `${part.name} ${JSON.stringify(part.arguments)}` : '')).filter(Boolean).join('\n')).join('\n') || JSON.stringify(entry.data ?? {},null,2);
+      article.append(label,body); return article;
+    });
+    el('transcript').replaceChildren(...articles);
+    el('live').textContent = JSON.stringify(state.docs,null,2);
+  } catch (error) { el('status').textContent = error.message; }
+}
+el('compose').onsubmit = async event => {
+  event.preventDefault(); if (sending) return;
+  const content = el('message').value;
+  const whenBusy = el('mode').value;
+  // Retry the same request ID after a lost response, including a server restart.
+  if (!request || request.content !== content || request.whenBusy !== whenBusy) request = {content,whenBusy,requestId:crypto.randomUUID()};
+  sending = true; el('send').disabled = true; el('error').textContent = '';
+  try { await post('api/submit',request); request = undefined; el('message').value = ''; }
+  catch (error) { el('error').textContent = error.message; }
+  finally { sending = false; await refresh(); }
+};
+el('stop').onclick = async () => {
+  try { await post('api/abort',{}); await refresh(); }
+  catch (error) { el('error').textContent = error.message; }
+};
+async function poll() { await refresh(); setTimeout(poll,1000); }
+poll();
+</script>
+</html>
