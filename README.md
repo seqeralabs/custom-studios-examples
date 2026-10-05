@@ -105,6 +105,14 @@ All studios in this repository:
 - [Wave CLI](https://docs.seqera.io/wave/)
 - [Deploying custom applications in Seqera Studios](https://seqera.io/blog/deploy-custom-apps-studios/)
 
+## Dependency updates (Renovate)
+
+Renovate configuration lives on **`master`** only (`renovate.json` and `.github/workflows/renovate.yml`). The bot opens update pull requests against each studio branch listed in `baseBranches` (branches that contain `.seqera/Dockerfile`), not against `master` for studio Docker changes.
+
+After merging Renovate setup to `master`, a repository maintainer must add a GitHub Actions secret **`RENOVATE_TOKEN`**: a personal access token (or GitHub App token) with `contents`, `pull-requests`, and `workflow` write access so Renovate can open and update PRs on studio branches.
+
+Connect-client version bumps in `.seqera/Dockerfile` use inline `# renovate:` comments; add those annotations on each studio branch separately so the regex managers can track `CONNECT_CLIENT_VERSION`.
+
 ## Contributing
 
 To add a new studio:
