@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "seqera": {
+        "type": "remote",
+        "url": "https://mcp.seqera.io/mcp"
+      }
+    }
+  }
+}
