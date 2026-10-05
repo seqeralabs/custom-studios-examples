@@ -8,6 +8,7 @@ import { createModels } from '@earendil-works/pi-ai/models';
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import { anthropicProvider } from '@earendil-works/pi-ai/providers/anthropic';
+import { connectSeqeraMcp } from './seqera-mcp.mjs';
 import { context, storagePaths, openStorage } from './storage.mjs';
 
 export async function openStudio(env = process.env, options = {}) {
@@ -22,8 +23,10 @@ export async function openStudio(env = process.env, options = {}) {
   const models = options.models ?? createModels();
   if (!options.models) models.setProvider(providerFactory());
   if (!models.getModel(provider, modelId)) throw new Error('PI_MODEL is not in the pinned provider catalog.');
+  const mcp = await (options.connectMcp ?? connectSeqeraMcp)(env);
   const registry = createRegistry();
   registry.install(CodingTools);
+  if (mcp.extension) registry.install(mcp.extension);
   const harness = await Harness.open(await openStorage(paths.directory), {
     models, registry,
     env: ({ cwd }) => new NodeExecutionEnv({ cwd: cwd ?? paths.work }),
@@ -49,7 +52,8 @@ export async function openStudio(env = process.env, options = {}) {
         return res.end(html);
       }
       if (req.method === 'GET' && path === '/healthz') return json(200, { ok: true, ready, storage: 'jsonl' });
-      if (req.method === 'GET' && path === '/api/state') return json(200, { id: root.id, provider, modelId, ready, ...view.value });
+      if (req.method === 'GET' && path === '/api/mcp') return json(200, mcp.status());
+      if (req.method === 'GET' && path === '/api/state') return json(200, { id: root.id, provider, modelId, ready, mcp: mcp.status(), ...view.value });
       if (req.method !== 'POST' || !['/api/submit', '/api/abort'].includes(path)) return json(404, { error: 'Not found' });
       // A cross-origin form cannot set this header; no CORS headers are granted.
       if (req.headers['x-pi-studio'] !== '1' || req.headers['content-type'] !== 'application/json') return json(403, { error: 'Use the Studio client' });
@@ -83,6 +87,7 @@ export async function openStudio(env = process.env, options = {}) {
     view.dispose();
     // close preserves unfinished tasks for resume; abort would cancel them.
     await harness.close(context);
+    await mcp.close();
     server.closeAllConnections();
   } };
 }

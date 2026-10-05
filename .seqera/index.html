@@ -8,6 +8,7 @@ body{font:16px system-ui;background:#f5f5f3;color:#222;max-width:960px;margin:32
 </style>
 <h1>Pi Durable</h1>
 <p>Conversation and work files are stored on your mounted data link. Stop the Studio cleanly before opening this storage in another Studio.</p>
+<p id="mcp-status">Seqera MCP: checking connection</p>
 <p id="status">Connecting…</p>
 <section id="transcript" aria-live="polite"></section>
 <form id="compose">
@@ -33,6 +34,7 @@ async function refresh() {
     if (!response.ok) throw new Error('Cannot read Studio state');
     const state = await response.json();
     el('status').textContent = `${state.provider} / ${state.modelId} · ${state.ready ? 'Connected' : 'API key required; set it in the Studio environment and restart'}`;
+    el('mcp-status').textContent = `Seqera MCP: ${state.mcp.state}${state.mcp.state === 'connected' ? ` · ${state.mcp.tools.length} tools` : state.mcp.state === 'not-configured' ? ' · set SEQERA_MCP_TOKEN in the Studio environment' : state.mcp.state === 'error' ? ' · check token/network and restart the Studio' : ''}`;
     el('send').disabled = !state.ready || sending;
     el('stop').disabled = !state.ready;
     const articles = state.entries.map(entry => {

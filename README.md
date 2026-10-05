@@ -14,7 +14,8 @@ This branch runs [Pi Durable](https://earendil.com/posts/pi-durable/) as a web c
 4. Select a compatible compute environment. Configure the Studio container repository and push credentials if your workspace does not already have them.
 5. Under **Mount data**, select a dedicated, writable data link. Its compute credentials must be able to read and write the backing storage.
 6. Under **General config**, set `PI_DATA_LINK` to the mount's displayed path, such as `/workspace/data/agent-state`. Set `PI_PROVIDER`, `PI_MODEL` and the matching provider key using the table below.
-7. Keep the Studio **private**, click **Add**, then **Start**.
+7. To enable Seqera MCP, also set `SEQERA_MCP_TOKEN` to a valid Platform access token in the runtime environment.
+8. Keep the Studio **private**, click **Add**, then **Start**.
 
 `PI_DATA_LINK` must point to an existing mount beneath `/workspace/data`. The app refuses absent mounts, ordinary local filesystems and unwritable paths. Data links must be selected in Platform; they cannot be declared in `studio-config.yaml`.
 
@@ -36,6 +37,7 @@ For Wave builds, use `.seqera` as the build context. It contains only app source
 - Browser chat, queued follow-up messages, steering and live tool state.
 - Read, write, edit and bash tools operating in the persistent working directory.
 - OpenAI, Anthropic and OpenRouter providers.
+- Seqera MCP tools for API discovery, workflow operations, nf-core modules and data tools.
 - JSONL checkpoints and transcripts; repeated submission IDs are deduplicated.
 - Connect client **0.14**, with the app listening on `CONNECT_TOOL_PORT`.
 
@@ -50,11 +52,49 @@ For Wave builds, use `.seqera` as the build context. It contains only app source
 | `OPENAI_API_KEY` | Unset | Required for OpenAI, e.g. model `gpt-6.1-sol` |
 | `ANTHROPIC_API_KEY` | Unset | Required for Anthropic |
 | `OPENROUTER_API_KEY` | Unset | Required for OpenRouter, e.g. model `openai/gpt-6.1-sol` |
+| `SEQERA_MCP_TOKEN` | Unset | Platform access token for Seqera MCP; falls back to `TOWER_ACCESS_TOKEN` |
+| `SEQERA_MCP_ENABLED` | Enabled when a token is available | Set `0` to disable the MCP connection |
 | `CONNECT_TOOL_PORT` | Set by Platform | HTTP listening port |
 
 Without a provider key, the UI opens for inspection but chat and automatic task resumption are disabled. Supply keys through the Studio runtime environment. Coding tools run with the Studio user's permissions and can access mounted files and environment variables, so grant access only to trusted users.
 
 Changing the provider or model at launch updates subsequent requests. Unfinished requests retain their recorded model; restart with the original provider while they exist.
+
+## Seqera MCP
+
+The Studio connects to [Seqera MCP](https://seqera.io/mcp/) at
+`https://mcp.seqera.io/mcp` using streamable HTTP. Supply a Platform access token
+through `SEQERA_MCP_TOKEN` (or `TOWER_ACCESS_TOKEN`) in the Studio runtime
+environment. Keep it out of the repository, Docker build context and data link.
+The browser shows connection state and tool count; `/api/mcp` returns the same
+status without credentials.
+
+[Pi's MCP documentation](https://pi.dev/docs/latest/mcp) describes the coding
+agent's `.pi/mcp.json` configuration. This app uses Pi Durable 1.0.2, which does
+not load that extension. It uses the official MCP SDK to register discovered
+server tools as durable tools named `mcp__seqera__<tool>` instead.
+
+Try: **Use Seqera MCP to find the API for listing workflows. Do not launch or
+modify anything.** The agent should call `mcp__seqera__search_seqera_api`.
+`call_seqera_api` and `call_data_tool` can perform remote changes as well as
+reads; ask explicitly for the action you intend and keep the Studio private.
+All MCP tools use the unsafe replay policy: an interrupted call is reported to
+the agent rather than automatically repeated, avoiding duplicate remote writes.
+
+Tool discovery happens at startup. With no token, MCP remains unconfigured;
+with an invalid token or connection failure, it reports an error while the
+coding assistant remains available. Update the environment and restart the
+Studio to reconnect. Model-provider credentials are separate from MCP auth.
+
+A read-only live check makes an authenticated discovery call without a model:
+
+```bash
+node scripts/verify-mcp.mjs
+```
+
+Run `npm ci` in `.seqera` first and supply the token through your runtime
+environment. The output contains connection status and tool names, not the
+token or account/workspace results.
 
 ## Persistence and Demo
 
@@ -87,7 +127,7 @@ npm ci
 npm test
 ```
 
-The tests make no provider requests. They cover mount refusal, HTTP write protection, restart identity, OpenRouter configuration, a tool turn, and SIGKILL checkpoint recovery with request deduplication.
+The tests make no provider requests. They cover mount refusal, HTTP write protection, restart identity, OpenRouter configuration, coding and MCP tool turns, paginated MCP discovery, authentication failure handling, and SIGKILL checkpoint recovery with request deduplication.
 
 For a local preview with chat disabled:
 

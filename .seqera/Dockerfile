@@ -10,7 +10,7 @@ RUN /usr/bin/connect-client --install
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY storage.mjs server.mjs index.html start.sh ./
+COPY storage.mjs server.mjs seqera-mcp.mjs index.html start.sh ./
 ENV CONNECT_TOOL_PORT=3000 PI_INSTANCE=pi-durable PI_PROVIDER=openai
 EXPOSE 3000
 ENTRYPOINT ["/usr/bin/connect-client", "--entrypoint"]
