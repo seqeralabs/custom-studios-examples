@@ -7,7 +7,7 @@ Run [OpenCode v2](https://opencode.ai/v2/docs/) in Seqera Studios with its built
 ## Launch from Git Repository
 
 1. In Seqera Platform, select **Studios → Add Studio → Git repository**.
-2. Enter `https://github.com/seqeralabs/custom-studios-examples` and select branch **`codex/opencode`** after publishing this branch.
+2. Enter `https://github.com/seqeralabs/custom-studios-examples` and select branch **`codex/opencode`**.
 3. Select a compatible compute environment and configure the Studio image repository and push credentials if required.
 4. Under **Mount data**, select a dedicated, writable data link.
 5. Set `OPENCODE_DATA_LINK` to the displayed mount path, such as `/workspace/data/agent-state`.
@@ -84,6 +84,8 @@ Use **one Studio per instance directory**. The writer lock prevents a second pro
 3. Stop the **Studio** in Platform and wait for **stopped**. Check that shutdown reported `Final OpenCode database backup saved`.
 4. In Data Explorer, independently download `opencode/state/opencode.db` and `opencode/work/demo.txt`. Confirm the marker and run `PRAGMA quick_check` against the downloaded database.
 5. Start the same Studio with the same data link and instance. Confirm the completed conversation is present and the agent can read the marker again.
+
+To verify Fusion restoration independently of Studio filesystem checkpoints, launch a **fresh Studio** with the same image, data link and instance after the original Studio is stopped. Confirm the complete transcript, tool results and file contents match. Keep only one writer running against the instance directory.
 
 An image build or local test does not prove this live acceptance check passed.
 
