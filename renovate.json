@@ -23,8 +23,6 @@
     "waymote",
     "windows"
   ],
-  "schedule": ["before 9am on monday"],
-  "timezone": "UTC",
   "automerge": false,
   "labels": ["dependencies"],
   "prHourlyLimit": 5,

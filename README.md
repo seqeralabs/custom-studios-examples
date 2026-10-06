@@ -107,7 +107,7 @@ All studios in this repository:
 
 ## Dependency updates (Renovate)
 
-Renovate configuration lives on **`master`** only (`renovate.json` and `.github/workflows/renovate.yml`). The bot opens update pull requests against each studio branch listed in `baseBranches` (branches that contain `.seqera/Dockerfile`), not against `master` for studio Docker changes.
+Renovate configuration lives on **`master`** only (`renovate.json` and `.github/workflows/renovate.yml`). The workflow cron (Mondays 05:00 UTC) controls when scheduled runs execute; `workflow_dispatch` always runs immediately. The bot opens update pull requests against each studio branch listed in `baseBranchPatterns` (branches that contain `.seqera/Dockerfile`), not against `master` for studio Docker changes.
 
 After merging Renovate setup to `master`, a repository maintainer must add a GitHub Actions secret **`RENOVATE_TOKEN`**: a personal access token (or GitHub App token) with `contents`, `pull-requests`, and `workflow` write access so Renovate can open and update PRs on studio branches.
 
