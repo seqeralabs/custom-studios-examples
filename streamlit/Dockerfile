@@ -7,7 +7,7 @@ FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS co
 # ---------------------------------------------------------------
 # 2) Additional base image for Streamlit
 # ---------------------------------------------------------------
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Just for the automation at Seqera
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
