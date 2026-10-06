@@ -1,6 +1,6 @@
 ARG CONNECT_CLIENT_VERSION=0.14
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
-FROM node:22.22.3-bookworm-slim
+FROM node:22.23.3-bookworm-slim
 ARG CONNECT_CLIENT_VERSION
 LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
 RUN apt-get update && apt-get install -y --no-install-recommends bash git ca-certificates util-linux procps \
