@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python3 -m unittest discover -s .seqera/test -v
       - run: docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.14 -t opencode-studio .seqera
       - run: python3 .seqera/test/smoke.py opencode-studio
