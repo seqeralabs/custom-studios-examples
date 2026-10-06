@@ -16,6 +16,7 @@
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
 # Test Build
+# renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
 ARG CONNECT_CLIENT_VERSION=0.12
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
@@ -33,6 +34,7 @@ ENV UV_SYSTEM_PYTHON=1
 WORKDIR /app
 
 # Install the requirements using uv
+# renovate: datasource=pypi depName=marimo
 RUN uv pip install scikit-learn pandas altair micropip marimo==0.11.13
 
 # Define the port for the marimo server
