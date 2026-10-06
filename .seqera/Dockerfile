@@ -16,7 +16,7 @@
 # 1) Multi-stage build: Pull the connect-client binary
 # ---------------------------------------------------------------
 # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
-ARG CONNECT_CLIENT_VERSION=0.9
+ARG CONNECT_CLIENT_VERSION=0.14
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # ---------------------------------------------------------------
