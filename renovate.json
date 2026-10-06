@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "description": "Renovate for custom-studios-examples (branch-per-studio). Config on master; dependency PRs target studio branches with .seqera/Dockerfile.",
-  "baseBranches": [
+  "baseBranchPatterns": [
     "master",
     "cellxgene",
     "codex/opencode",
@@ -32,26 +32,17 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Update CONNECT_CLIENT_VERSION ARG in .seqera/Dockerfile",
-      "fileMatch": ["(^|/)\\.seqera/Dockerfile$"],
-      "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\nARG CONNECT_CLIENT_VERSION=(?<currentValue>.*)"
-      ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    },
-    {
-      "customType": "regex",
       "description": "Update connect_client_version default in GitHub workflow",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
       "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\n\\s+default:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?"
+        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\n(?:[ \\t]+[^\\n]*\\n)*?[ \\t]+default:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?"
       ],
-      "versioningTemplate": "semver"
+      "versioningTemplate": "docker"
     },
     {
       "customType": "regex",
       "description": "Update pip/uv packages with pinned versions in .seqera/Dockerfile",
-      "fileMatch": ["(^|/)\\.seqera/Dockerfile$"],
+      "managerFilePatterns": ["/(^|/)\\.seqera/Dockerfile$/"],
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*)\\n.*(?:pip install|uv pip install).*\\s\\S*==(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
@@ -63,7 +54,7 @@
       "description": "Group connect-client updates across Dockerfiles and workflows",
       "groupName": "connect-client",
       "matchDepNames": ["public.cr.seqera.io/platform/connect-client"],
-      "matchManagers": ["regex", "dockerfile"]
+      "matchManagers": ["custom.regex", "dockerfile"]
     },
     {
       "description": "Group Python base image updates",
@@ -84,7 +75,7 @@
     {
       "description": "Update Wave community images separately",
       "groupName": "wave-images",
-      "matchDepPatterns": ["^community\\.wave\\.seqera\\.io/"]
+      "matchDepNames": ["/^community\\.wave\\.seqera\\.io//"]
     },
     {
       "description": "Python pip packages",
@@ -93,7 +84,7 @@
     }
   ],
   "dockerfile": {
-    "fileMatch": ["(^|/)\\.seqera/Dockerfile$"],
+    "managerFilePatterns": ["/(^|/)\\.seqera/Dockerfile$/"],
     "enabled": true
   },
   "github-actions": {

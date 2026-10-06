@@ -111,7 +111,7 @@ Renovate configuration lives on **`master`** only (`renovate.json` and `.github/
 
 After merging Renovate setup to `master`, a repository maintainer must add a GitHub Actions secret **`RENOVATE_TOKEN`**: a personal access token (or GitHub App token) with `contents`, `pull-requests`, and `workflow` write access so Renovate can open and update PRs on studio branches.
 
-Connect-client version bumps in `.seqera/Dockerfile` use inline `# renovate:` comments; add those annotations on each studio branch separately so the regex managers can track `CONNECT_CLIENT_VERSION`.
+The built-in Dockerfile manager tracks `connect-client` on studio branches via `FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION}` (no `# renovate:` comment required on the `ARG`). Optional `# renovate:` markers above pinned pip/uv packages in `.seqera/Dockerfile` enable those dependency updates. Run `prek run renovate-config-validator --all-files` locally to validate `renovate.json` before pushing changes.
 
 ## Contributing
 
