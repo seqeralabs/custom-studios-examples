@@ -7,7 +7,7 @@ FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS co
 # ---------------------------------------------------------------
 # 2) Final stage: Ubuntu + micromamba + r-shiny
 # ---------------------------------------------------------------
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Just for the automation at Seqera
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
