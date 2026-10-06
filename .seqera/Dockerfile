@@ -17,11 +17,13 @@
 # maximum allowed size of 10000 bytes"), which is 7500 raw. That is why the rationale
 # for these instructions lives in ../README.md rather than in comments here.
 
+# renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
 ARG CONNECT_CLIENT_VERSION=0.12
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Debian, not ubuntu-xfce: on Ubuntu 25.10 every image decode goes through glycin, which
 # needs a bwrap sandbox the container cannot grant, and the failure kills xfce4-panel.
+# renovate: datasource=docker depName=lscr.io/linuxserver/webtop
 FROM lscr.io/linuxserver/webtop:debian-xfce
 
 LABEL org.opencontainers.image.source="https://github.com/seqeralabs/custom-studios-examples"
