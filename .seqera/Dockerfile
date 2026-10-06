@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
 ARG CONNECT_CLIENT_VERSION=0.12
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
