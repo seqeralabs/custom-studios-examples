@@ -19,10 +19,10 @@ on:
         type: string
       # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
       connect_client_version:
-        description: 'Version of connect-client to use (e.g., 0.9)'
+        description: 'Version of connect-client to use (e.g., 0.14)'
         required: false
         type: string
-        default: '0.9'
+        default: '0.14'
 
 env:
   REGISTRY: ghcr.io
