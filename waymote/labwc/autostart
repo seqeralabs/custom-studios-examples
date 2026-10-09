@@ -1,0 +1,5 @@
+#!/bin/sh
+# Labwc autostart for the Seqera Waymote studio.
+cd /workspace 2>/dev/null || true
+foot --title "Studio terminal" &
+pcmanfm /workspace &

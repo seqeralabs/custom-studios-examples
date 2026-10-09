@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Repository overview
 
-This is **Seqera Labs Custom Studios Examples** — a collection of Docker-based [Seqera Platform Studios](https://docs.seqera.io/platform-cloud/studios/overview) reference environments. Each studio is a standalone container image (Marimo, CellxGene, Streamlit, R Shiny, Shinyngs, TTYD). There is no root-level package manager, monorepo build, or docker-compose stack.
+This is **Seqera Labs Custom Studios Examples** — a collection of Docker-based [Seqera Platform Studios](https://docs.seqera.io/platform-cloud/studios/overview) reference environments. Each studio is a standalone container image (Marimo, CellxGene, Streamlit, R Shiny, Shinyngs, TTYD, Waymote). There is no root-level package manager, monorepo build, or docker-compose stack.
 
 The `master` branch holds documentation and example directories. Deployable studio configs (`.seqera/studio-config.yaml`) live on dedicated git branches per studio.
 
@@ -32,7 +32,7 @@ There is no `package.json`, `requirements.txt`, or Makefile at the repository ro
 Pick one studio directory and build with the required `CONNECT_CLIENT_VERSION` build arg (default `0.9` in Dockerfiles):
 
 ```bash
-cd shiny-simple-example   # or marimo/, cellxgene/, streamlit/, ttyd/
+cd shiny-simple-example   # or marimo/, cellxgene/, streamlit/, ttyd/, waymote/
 sudo docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t <image-name> .
 ```
 
@@ -75,6 +75,14 @@ sudo docker run -p 3000:3000 --entrypoint streamlit streamlit-example \
   run /app/multiqc_app.py --server.port=3000 --server.address=0.0.0.0
 ```
 
+**Waymote** (`waymote/`):
+
+```bash
+sudo docker run --platform linux/amd64 -p 3000:3000 \
+  -e CONNECT_TOOL_PORT=3000 \
+  --entrypoint /usr/local/bin/start-waymote waymote-studio
+```
+
 Open http://localhost:3000 in a browser after the container starts.
 
 ### Lint / test / CI
@@ -84,6 +92,7 @@ There are no local lint or unit-test scripts. CI (`.github/workflows/docker-pr.y
 ### Gotchas
 
 - All images target **`linux/amd64`**; pass `--platform=linux/amd64` when building on ARM hosts.
+- **Waymote** is amd64-only (packaged server) and uses software encoding; expect CPU usage to scale with resolution and bitrate.
 - **CellxGene** fails to start if a referenced `s3://`/`gs://`/`az://` dataset path isn't mounted via **Mount data** in the Studio.
 - **Marimo** does not support opening the same notebook in multiple tabs (state conflicts).
 - **Shiny** ships bundled `data.csv`; override `DATA_PATH` or mount volumes for custom data.

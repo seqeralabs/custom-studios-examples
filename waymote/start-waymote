@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Start a headless Labwc session and stream it with Waymote on CONNECT_TOOL_PORT.
+set -euo pipefail
+
+port="${CONNECT_TOOL_PORT:-3000}"
+width="${WAYMOTE_WIDTH:-1280}"
+height="${WAYMOTE_HEIGHT:-720}"
+frame_rate="${WAYMOTE_FRAME_RATE:-30}"
+bitrate="${WAYMOTE_BITRATE:-8000}"
+xkb_layout="${WAYMOTE_XKB_LAYOUT:-us}"
+
+runtime_directory="$(mktemp -d /tmp/waymote-studio.XXXXXX)"
+export XDG_RUNTIME_DIR="$runtime_directory"
+chmod 700 "$runtime_directory"
+mkdir -p /workspace "$runtime_directory/pulse"
+
+labwc_pid=
+gateway_pid=
+audio_pid=
+
+cleanup() {
+    trap - EXIT INT TERM
+    for pid in "$gateway_pid" "$labwc_pid" "$audio_pid"; do
+        [[ -n "${pid:-}" ]] && kill "$pid" 2>/dev/null || true
+    done
+    for pid in "$gateway_pid" "$labwc_pid" "$audio_pid"; do
+        [[ -n "${pid:-}" ]] && wait "$pid" 2>/dev/null || true
+    done
+    rm -rf "$runtime_directory"
+}
+trap cleanup EXIT INT TERM
+
+export PULSE_SERVER="unix:$runtime_directory/pulse/native"
+pulseaudio --daemonize=no --exit-idle-time=-1 --disable-shm=true \
+    >"$runtime_directory/pulseaudio.log" 2>&1 &
+audio_pid=$!
+for _ in $(seq 1 200); do
+    if pactl info >/dev/null 2>&1; then
+        break
+    fi
+    if ! kill -0 "$audio_pid" 2>/dev/null; then
+        cat "$runtime_directory/pulseaudio.log" >&2
+        wait "$audio_pid"
+    fi
+    sleep 0.025
+done
+if ! pactl info >/dev/null 2>&1; then
+    echo "PulseAudio did not become ready" >&2
+    cat "$runtime_directory/pulseaudio.log" >&2
+    exit 1
+fi
+pactl load-module module-null-sink \
+    sink_name=waymote_session rate=48000 channels=2 >/dev/null
+export PULSE_SINK=waymote_session
+export WAYMOTE_AUDIO_SOURCE=waymote_session.monitor
+
+export WLR_BACKENDS=headless
+export WLR_HEADLESS_OUTPUTS=1
+export WLR_LIBINPUT_NO_DEVICES=1
+export WLR_RENDERER=pixman
+export XKB_DEFAULT_LAYOUT="$xkb_layout"
+export GDK_BACKEND=wayland
+export QT_QPA_PLATFORM=wayland
+export XDG_CURRENT_DESKTOP=labwc
+
+labwc >"$runtime_directory/labwc.log" 2>&1 &
+labwc_pid=$!
+
+socket=
+for _ in $(seq 1 200); do
+    socket="$(find "$runtime_directory" -maxdepth 1 -type s -name 'wayland-*' -printf '%f\n' | head -n 1)"
+    [[ -n "$socket" ]] && break
+    if ! kill -0 "$labwc_pid" 2>/dev/null; then
+        cat "$runtime_directory/labwc.log" >&2
+        wait "$labwc_pid"
+    fi
+    sleep 0.05
+done
+if [[ -z "${socket:-}" ]]; then
+    cat "$runtime_directory/labwc.log" >&2
+    echo "Labwc did not create a Wayland socket" >&2
+    exit 1
+fi
+export WAYLAND_DISPLAY="$socket"
+
+if command -v wayland-info >/dev/null 2>&1; then
+    wayland-info >"$runtime_directory/wayland-info.log" 2>&1 || true
+    for protocol in zwlr_screencopy_manager_v1 zwlr_virtual_pointer_manager_v1 zwp_virtual_keyboard_manager_v1; do
+        if ! grep -q "interface: '$protocol'" "$runtime_directory/wayland-info.log"; then
+            echo "Labwc is missing required protocol $protocol" >&2
+            cat "$runtime_directory/wayland-info.log" >&2
+            exit 1
+        fi
+    done
+fi
+
+wlr-randr --output HEADLESS-1 --custom-mode "${width}x${height}@${frame_rate}Hz"
+
+echo "[waymote] listening on 0.0.0.0:${port} (${width}x${height} @ ${frame_rate} fps)"
+waymote-gateway \
+    -listen "0.0.0.0:${port}" \
+    -streamd /usr/local/bin/waymote-streamd \
+    -frame-rate "$frame_rate" \
+    -bitrate "$bitrate" \
+    -fixed-width "$width" \
+    -fixed-height "$height" \
+    -xkb-layout "$xkb_layout" \
+    -audio-source "$WAYMOTE_AUDIO_SOURCE" &
+gateway_pid=$!
+wait "$gateway_pid"
