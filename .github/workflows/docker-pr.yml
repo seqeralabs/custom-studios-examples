@@ -5,9 +5,6 @@ on:
     paths:
       - '**/Dockerfile'
 
-env:
-  REGISTRY: ghcr.io
-
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -60,7 +57,6 @@ jobs:
     if: ${{ fromJson(needs.detect-changes.outputs.matrix).container[0] != null }}
     permissions:
       contents: read
-      packages: write
       pull-requests: write
 
     strategy:
@@ -71,44 +67,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/development
-          tags: |
-            type=ref,event=pr,prefix=${{ matrix.container.name }}-pr
+      - name: Set local image tag
+        id: imagetag
+        run: |
+          echo "ref=custom-studios-${{ matrix.container.name }}:pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push ${{ matrix.container.name }}
+      - name: Build ${{ matrix.container.name }}
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ${{ matrix.container.path }}
-          push: true
+          push: false
+          load: true
           platforms: linux/amd64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.imagetag.outputs.ref }}
           cache-from: type=gha,scope=${{ matrix.container.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.container.name }}
-
-      - name: Get image reference for scan
-        id: scanref
-        run: |
-          echo "ref=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
 
       - name: Run security scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ steps.scanref.outputs.ref }}
+          image-ref: ${{ steps.imagetag.outputs.ref }}
           format: "table"
           output: "trivy-results.txt"
           severity: "CRITICAL,HIGH,MEDIUM"
@@ -139,10 +120,10 @@ jobs:
         run: |
           echo "## 🐳 Build Summary - ${{ matrix.container.name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: \`${{ env.REGISTRY }}/${{ github.repository }}/development\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tag**: \`${{ matrix.container.name }}-pr${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Container**: \`${{ matrix.container.name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.head_ref }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Note**: Image built locally in CI for validation only (not published to a registry)." >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
@@ -150,7 +131,6 @@ jobs:
           script: |
             const fs = require('fs');
             const imageName = '${{ matrix.container.name }}';
-            const imageTag = `${{ env.REGISTRY }}/${{ github.repository }}/development:${imageName}-pr${{ github.event.pull_request.number }}`;
             const commentId = `build-results-${imageName}`;
 
             let securityStatus = '✅ Security scan completed';
@@ -176,18 +156,14 @@ jobs:
 
             const output = `## 🐳 Docker Build Results - ${imageName}
 
-            ✅ Docker image built successfully
+            ✅ Docker image built successfully (local CI build only — not pushed to a registry)
 
             | Property | Value |
             |----------|-------|
-            | **Image** | \`${imageTag}\` |
+            | **Container** | \`${imageName}\` |
             | **Branch** | ${{ github.head_ref }} |
             | **Commit** | \`${{ github.sha }}\` |
             | **Security** | ${securityStatus} |
-
-            \`\`\`bash
-            docker pull ${imageTag}
-            \`\`\`
 
             📁 Download the full security scan report from the workflow artifacts.
 

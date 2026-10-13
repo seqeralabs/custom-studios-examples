@@ -33,20 +33,19 @@ Each branch contains a `.seqera/` directory with:
 - `Dockerfile` — Container definition with connect-client integration
 - Any supporting files required by the Dockerfile
 
-## Alternative Deployment: Pre-built Images
+## Alternative Deployment: Build Your Own Image
 
-Each studio is also available as a pre-built container image:
+This repository does not publish pre-built container images. Build an image from the reference Dockerfile on `master` (or from `.seqera/Dockerfile` on a studio branch), push it to a registry your organization controls, then select **Prebuilt container image** when adding a Studio.
 
+Example (R Shiny reference on `master`):
+
+```bash
+cd shiny-simple-example
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t my-registry.example.com/my-org/shiny:latest .
+docker push my-registry.example.com/my-org/shiny:latest
 ```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
-```
 
-To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
+See each studio's README under its directory on `master` for build arguments and local run commands.
 
 ## Alternative Deployment: Wave CLI
 

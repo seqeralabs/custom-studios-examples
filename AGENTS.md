@@ -36,7 +36,7 @@ cd shiny-simple-example   # or marimo/, cellxgene/, streamlit/, ttyd/
 sudo docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t <image-name> .
 ```
 
-Pre-built images are also available from GHCR, e.g. `ghcr.io/seqeralabs/custom-studios-examples/shiny:latest`.
+Pre-built images are not published from this repository; build locally (see root `README.md` and each studio directory's README).
 
 ### Running locally (override connect-client entrypoint)
 

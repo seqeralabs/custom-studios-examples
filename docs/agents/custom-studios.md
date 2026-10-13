@@ -228,23 +228,15 @@ CI (`.github/workflows/docker-pr.yml`) builds changed Dockerfiles on PR and runs
 
 ### Pre-built container image
 
-1. Push the image to a registry accessible from Platform (GHCR, ECR, etc.).
-2. **Studios → Add Studio → Prebuilt container image**.
-3. Enter the image URI (e.g. `ghcr.io/seqeralabs/custom-studios-examples/shiny:latest`).
-4. **Compute and Data**: select compute env, CPU/memory/GPU, **Mount data** for required buckets.
-5. **General config**: set name, description, and any env vars (`DATA_PATH`, `DATASET_FILE`, …).
-6. Review and **Add → Start**.
+Build the image yourself (this repo does not publish images to a public registry), push to a registry accessible from Platform (ECR, GCR, your private registry, etc.), then:
 
-Pre-built images for this repo:
+1. **Studios → Add Studio → Prebuilt container image**.
+2. Enter your image URI (e.g. `my-registry.example.com/my-org/shiny:latest`).
+3. **Compute and Data**: select compute env, CPU/memory/GPU, **Mount data** for required buckets.
+4. **General config**: set name, description, and any env vars (`DATA_PATH`, `DATASET_FILE`, …).
+5. Review and **Add → Start**.
 
-```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
-```
+Reference Dockerfiles live under each studio directory on `master` (e.g. `shiny-simple-example/Dockerfile`) or in `.seqera/Dockerfile` on studio branches. Use `CONNECT_CLIENT_VERSION` as documented in each README.
 
 ### Git repository deployment (branch-per-studio)
 

@@ -20,15 +20,6 @@ This container is designed for use as a [custom Studio environment](https://docs
 
 ![Screenshot of CellxGene](screenshot.png)
 
-## Docker Image
-
-The container image is available at:
-```
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-```
-
-For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/cellxgene:v1.0.0`).
-
 ## Features
 
 - CellxGene 1.3.0 visualization platform

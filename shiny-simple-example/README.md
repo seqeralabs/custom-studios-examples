@@ -20,15 +20,6 @@ This container is designed for use as a [custom Studio environment](https://docs
 
 ![Screenshot of the Shiny app](screenshot.png)
 
-## Docker Image
-
-The container image is available at:
-```
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-```
-
-For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/shiny:v1.0.0`).
-
 ## Features
 
 - Advanced data visualization with multiple plot types (scatter, line, bar, box, density)
