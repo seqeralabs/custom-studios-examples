@@ -228,22 +228,22 @@ CI (`.github/workflows/docker-pr.yml`) builds changed Dockerfiles on PR and runs
 
 ### Pre-built container image
 
-1. Push the image to a registry accessible from Platform (GHCR, ECR, etc.).
+1. Check out the studio branch and build from `.seqera/Dockerfile` (or build a reference Dockerfile on `master`), tag the image, and push to a registry accessible from Platform.
 2. **Studios → Add Studio → Prebuilt container image**.
-3. Enter the image URI (e.g. `ghcr.io/seqeralabs/custom-studios-examples/shiny:latest`).
+3. Enter your image URI.
 4. **Compute and Data**: select compute env, CPU/memory/GPU, **Mount data** for required buckets.
 5. **General config**: set name, description, and any env vars (`DATA_PATH`, `DATASET_FILE`, …).
 6. Review and **Add → Start**.
 
-Pre-built images for this repo:
+Example build:
 
-```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
+```bash
+docker build --platform=linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=0.9 \
+  -f .seqera/Dockerfile \
+  -t <your-registry>/<your-image>:<tag> \
+  .seqera
+docker push <your-registry>/<your-image>:<tag>
 ```
 
 ### Git repository deployment (branch-per-studio)

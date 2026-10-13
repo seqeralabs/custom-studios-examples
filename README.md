@@ -33,20 +33,22 @@ Each branch contains a `.seqera/` directory with:
 - `Dockerfile` — Container definition with connect-client integration
 - Any supporting files required by the Dockerfile
 
-## Alternative Deployment: Pre-built Images
+## Build your own container image
 
-Each studio is also available as a pre-built container image:
+To use **Prebuilt container image** in Seqera Studios, build from a studio branch (or a reference Dockerfile on `master`), push to a registry you control, then enter that image URI when adding the Studio.
 
+```bash
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
+cd custom-studios-examples
+docker build --platform=linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=0.9 \
+  -f .seqera/Dockerfile \
+  -t <your-registry>/<your-image>:<tag> \
+  .seqera
+docker push <your-registry>/<your-image>:<tag>
 ```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
-```
 
-To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
+Reference Dockerfiles on `master` (for example `marimo/Dockerfile`) use the same `CONNECT_CLIENT_VERSION` build argument—see each studio README.
 
 ## Alternative Deployment: Wave CLI
 
