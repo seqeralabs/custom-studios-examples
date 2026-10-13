@@ -19,15 +19,20 @@ a standalone Shiny application in Seqera Platform.
 5. Select your compute environment
 6. Click **Add** then **Start**
 
-### Alternative: Use Pre-built Image
+### Build a container image
 
-```
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
+```bash
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch shinyngs
+cd custom-studios-examples
+docker build --platform=linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=<version> \
+  -f .seqera/Dockerfile \
+  -t <your-registry>/<your-image>:<tag> \
+  .seqera
+docker push <your-registry>/<your-image>:<tag>
 ```
 
-Published automatically by `.github/workflows/build.yml` on every push to this
-branch. `:latest` tracks the branch head; individual builds are also tagged
-with the short commit SHA.
+Use **Prebuilt container image** in Seqera Studios with your registry URI. Set `CONNECT_CLIENT_VERSION` as in `.github/workflows/` or the docs on `master`.
 
 ### Alternative: Build with Wave CLI
 
