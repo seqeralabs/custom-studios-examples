@@ -1,20 +1,18 @@
-name: Build and Push Docker Image
+name: Build Docker Image
 
 on:
-  release:
-    types: [published]
+  pull_request:
+    paths:
+      - '.seqera/**'
+      - '.github/workflows/docker.yml'
   push:
     branches:
       - windows
     paths:
       - '.seqera/Dockerfile'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to use for the images (e.g., v1.0.0). Defaults to "latest"'
-        required: false
-        type: string
-        default: 'latest'
       # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
       connect_client_version:
         description: 'Version of connect-client to use (e.g., 0.9)'
@@ -23,48 +21,70 @@ on:
         default: '0.10'
 
 env:
-  REGISTRY: ghcr.io
-  # Use release tag for releases, input tag for manual runs, or 'latest' for push
-  IMAGE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag || 'latest' }}
-  # Use provided connect-client version or default to 0.9
   CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.10' }}
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Build and push windows
+      - name: Set local image tag
+        id: imagetag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "ref=windows:pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=windows:ci-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build windows image
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./.seqera
-          push: true
+          push: false
+          load: true
           platforms: linux/amd64
           build-args: |
             CONNECT_CLIENT_VERSION=${{ env.CONNECT_CLIENT_VERSION }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/windows:${{ env.IMAGE_TAG }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/windows:latest
+          tags: ${{ steps.imagetag.outputs.ref }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.description=Custom Studios Example Container for Windows/Wine
             org.opencontainers.image.licenses=MIT
-            org.opencontainers.image.version=${{ env.IMAGE_TAG }}
           cache-from: type=gha,scope=windows
-          cache-to: type=gha,mode=max,scope=windows 
+          cache-to: type=gha,mode=max,scope=windows
+
+      - name: Run security scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.imagetag.outputs.ref }}
+          format: "table"
+          output: "trivy-results.txt"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+
+      - name: Display security scan results
+        if: always()
+        run: |
+          echo "## Security scan — windows" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: trivy-scan-windows-${{ github.run_id }}
+          path: trivy-results.txt
+          retention-days: 30
