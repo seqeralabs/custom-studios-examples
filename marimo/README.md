@@ -2,14 +2,9 @@
 
 This repository provides a custom container image for running [marimo](https://marimo.io), an open-source reactive Python notebook, as a Studio environment in Seqera Platform.
 
-## Docker Image
+## Container image
 
-The container image is available at:
-```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-```
-
-For specific versions, use the release tag (e.g., `ghcr.io/seqeralabs/custom-studios-examples/marimo:v1.0.0`).
+Build using [Building the Container](#building-the-container), push to your registry, and use **Prebuilt container image** in Seqera Studios—or deploy from the [`marimo`](https://github.com/seqeralabs/custom-studios-examples/tree/marimo) branch via **Git repository** and `.seqera/Dockerfile`.
 
 ## Table of Contents
 
