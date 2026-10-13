@@ -1,4 +1,4 @@
-name: Build and Push shinyngs Studio Image
+name: Build shinyngs Studio Image
 
 on:
   push:
@@ -20,57 +20,71 @@ on:
         default: '0.12'
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/shinyngs
   CONNECT_CLIENT_VERSION: ${{ inputs.connect_client_version || '0.12' }}
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Determine image tag
-        id: image-tag
+      - name: Set local image tag
+        id: imagetag
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "push_latest=false" >> "$GITHUB_OUTPUT"
+            echo "ref=shinyngs:pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-            echo "push_latest=true" >> "$GITHUB_OUTPUT"
+            echo "ref=shinyngs:ci-${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and push
+      - name: Build image
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .seqera
           file: .seqera/Dockerfile
-          push: true
+          push: false
+          load: true
           platforms: linux/amd64
           build-args: |
             CONNECT_CLIENT_VERSION=${{ env.CONNECT_CLIENT_VERSION }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
-            ${{ steps.image-tag.outputs.push_latest == 'true' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          tags: ${{ steps.imagetag.outputs.ref }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.description=Seqera Studios image for shinyngs (RNA-seq exploration Shiny app)
             org.opencontainers.image.licenses=MIT
           cache-from: type=gha,scope=shinyngs
           cache-to: type=gha,mode=max,scope=shinyngs
+
+      - name: Run security scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.imagetag.outputs.ref }}
+          format: "table"
+          output: "trivy-results.txt"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+
+      - name: Display security scan results
+        if: always()
+        run: |
+          echo "## Security scan — shinyngs" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: trivy-scan-shinyngs-${{ github.run_id }}
+          path: trivy-results.txt
+          retention-days: 30
