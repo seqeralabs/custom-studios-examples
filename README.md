@@ -19,15 +19,9 @@ a standalone Shiny application in Seqera Platform.
 5. Select your compute environment
 6. Click **Add** then **Start**
 
-### Alternative: Use Pre-built Image
+### Alternative: Build Your Own Image
 
-```
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-```
-
-Published automatically by `.github/workflows/build.yml` on every push to this
-branch. `:latest` tracks the branch head; individual builds are also tagged
-with the short commit SHA.
+Build from `.seqera/Dockerfile` and push to a registry your organization controls, then use **Prebuilt container image** in Platform. CI on this branch builds and scans images in GitHub Actions only (nothing is published to GHCR). See [Local Testing](#local-testing) for a `docker build` example.
 
 ### Alternative: Build with Wave CLI
 
