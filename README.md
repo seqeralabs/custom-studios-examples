@@ -13,11 +13,9 @@ This branch contains the Seqera Studios configuration for running Windows softwa
 5. Select your compute environment
 6. Click **Add** then **Start**
 
-### Alternative: Use Pre-built Image
+### Alternative: Build Your Own Image
 
-```
-ghcr.io/seqeralabs/custom-studios-examples/windows:latest
-```
+Build from `.seqera/Dockerfile`, push to your registry, and use **Prebuilt container image** in Platform. CI builds and scans locally in GitHub Actions (not published to GHCR).
 
 ### Alternative: Build with Wave CLI
 
@@ -33,12 +31,6 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 - Desktop shortcuts for common tasks
 - File manager for easy data access
 - No Flatpak/Bottles dependencies
-
-## Docker Image
-
-```
-ghcr.io/seqeralabs/custom-studios-examples/windows:latest
-```
 
 ## Configuration
 
