@@ -15,11 +15,20 @@ This branch contains the Seqera Studios configuration for running [CellxGene](ht
 5. Select your compute environment
 6. Click **Add** then **Start**
 
-### Alternative: Use Pre-built Image
+### Build a container image
 
+```bash
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch cellxgene
+cd custom-studios-examples
+docker build --platform=linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=<version> \
+  -f .seqera/Dockerfile \
+  -t <your-registry>/<your-image>:<tag> \
+  .seqera
+docker push <your-registry>/<your-image>:<tag>
 ```
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-```
+
+Use **Prebuilt container image** in Seqera Studios with your registry URI. Set `CONNECT_CLIENT_VERSION` as in `.github/workflows/` or the docs on `master`.
 
 ### Alternative: Build with Wave CLI
 
@@ -35,12 +44,9 @@ wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --to
 - Configurable dataset path, title, and storage directories via environment variables
 - Cloud storage path support with automatic translation to local Studio paths
 
-## Docker Image
+## Container image
 
-The container image is available at:
-```
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-```
+Build from `.seqera/Dockerfile`, push to your registry, and use **Prebuilt container image** in Seqera Studios—or use **Git repository** deployment (above).
 
 ## Configuration
 
