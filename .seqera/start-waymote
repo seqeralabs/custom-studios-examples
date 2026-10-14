@@ -8,6 +8,9 @@ height="${WAYMOTE_HEIGHT:-720}"
 frame_rate="${WAYMOTE_FRAME_RATE:-30}"
 bitrate="${WAYMOTE_BITRATE:-8000}"
 xkb_layout="${WAYMOTE_XKB_LAYOUT:-us}"
+# If the Connect proxy changes the Host header, the gateway's same-origin check
+# rejects every WebSocket. Allow the Studio origin explicitly.
+public_url="${WAYMOTE_PUBLIC_URL:-https://*.connect.cloud.seqera.io}"
 
 runtime_directory="$(mktemp -d /tmp/waymote-studio.XXXXXX)"
 export XDG_RUNTIME_DIR="$runtime_directory"
@@ -99,6 +102,7 @@ wlr-randr --output HEADLESS-1 --custom-mode "${width}x${height}@${frame_rate}Hz"
 echo "[waymote] listening on 0.0.0.0:${port} (${width}x${height} @ ${frame_rate} fps)"
 waymote-gateway \
     -listen "0.0.0.0:${port}" \
+    -public-url "$public_url" \
     -streamd /usr/local/bin/waymote-streamd \
     -frame-rate "$frame_rate" \
     -bitrate "$bitrate" \

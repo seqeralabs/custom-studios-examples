@@ -101,8 +101,9 @@ The image targets `linux/amd64`. In Seqera Platform, keep the image entrypoint u
 | `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder frame rate |
 | `WAYMOTE_BITRATE` | `8000` | Encoder target bitrate in kbps |
 | `WAYMOTE_XKB_LAYOUT` | `us` | Keyboard layout forwarded to Waymote |
+| `WAYMOTE_PUBLIC_URL` | `https://*.connect.cloud.seqera.io` | Browser origin the gateway accepts for WebSockets |
 
-The gateway listens on `$CONNECT_TOOL_PORT`. `-public-url` is left unset so WebSocket connections succeed behind Platform's TLS proxy.
+The gateway listens on `$CONNECT_TOOL_PORT`. It accepts a WebSocket only when the browser origin matches the request `Host` header or `WAYMOTE_PUBLIC_URL`. The Connect proxy can change the `Host` header, so `start-waymote` passes `WAYMOTE_PUBLIC_URL` to the gateway as `-public-url`. On Seqera Platform Enterprise, set `WAYMOTE_PUBLIC_URL` to your Connect domain, for example `https://*.connect.example.com`. Local runs on `localhost` still work because the origin matches the `Host` header.
 
 ## Notes
 
