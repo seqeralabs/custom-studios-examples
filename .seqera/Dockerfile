@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
-ARG CONNECT_CLIENT_VERSION=0.12
+ARG CONNECT_CLIENT_VERSION=0.14.0
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 FROM debian:trixie-slim

@@ -13,6 +13,21 @@ This branch contains the Seqera Studios configuration for streaming a [Labwc](ht
 5. Select your compute environment.
 6. Click **Add**, then **Start**.
 
+## Build a container image
+
+```bash
+git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch waymote
+cd custom-studios-examples
+docker build --platform=linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=0.14.0 \
+  -f .seqera/Dockerfile \
+  -t <your-registry>/<your-image>:<tag> \
+  .seqera
+docker push <your-registry>/<your-image>:<tag>
+```
+
+Use **Prebuilt container image** in Seqera Studios with your registry URI. `CONNECT_CLIENT_VERSION` defaults to `0.14.0` in `.seqera/Dockerfile`.
+
 ## Configuration
 
 The `.seqera/studio-config.yaml` file uses the Dockerfile template:
@@ -30,7 +45,7 @@ session:
 
 ```bash
 docker build --platform linux/amd64 \
-  --build-arg CONNECT_CLIENT_VERSION=0.12 \
+  --build-arg CONNECT_CLIENT_VERSION=0.14.0 \
   -t waymote-studio .seqera
 ```
 
