@@ -1,122 +1,100 @@
-# Custom Studios Examples
+# Waymote Studio Environment
 
-Example configurations for deploying custom [Seqera Studio](https://docs.seqera.io/platform-cloud/studios/overview) applications from a Git repository.
+This branch contains the Seqera Studios configuration for streaming a [Labwc](https://github.com/labwc/labwc) Wayland desktop to the browser with [Waymote](https://github.com/rockorager/waymote).
 
-> **Do not merge studio configurations into `master`!** Each studio has its own dedicated branch.
+> This is a branch of the [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) repository. Each branch contains a different custom Studio configuration. See the `master` branch for an overview of all available Studios.
 
-## Repository Structure
+## Add from Git repository
 
-This repository uses a **branch-per-studio** model (similar to [nf-core/test-datasets](https://github.com/nf-core/test-datasets)). The `master` branch contains only this documentation. Each studio's configuration lives on its own branch with a `.seqera/` directory containing the `studio-config.yaml` and `Dockerfile` required for [launching Studios from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo).
+1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace.
+2. Select **Git repository** as the source.
+3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`.
+4. Select branch: `waymote`.
+5. Select your compute environment.
+6. Click **Add**, then **Start**.
 
-## Available Studios
+## Configuration
 
-| Branch | Studio | Description |
-|--------|--------|-------------|
-| [`marimo`](https://github.com/seqeralabs/custom-studios-examples/tree/marimo) | Marimo | Reactive Python notebook environment |
-| [`cellxgene`](https://github.com/seqeralabs/custom-studios-examples/tree/cellxgene) | CellxGene | Interactive single-cell data visualization |
-| [`streamlit`](https://github.com/seqeralabs/custom-studios-examples/tree/streamlit) | Streamlit | MultiQC visualization using Streamlit |
-| [`shiny`](https://github.com/seqeralabs/custom-studios-examples/tree/shiny) | R Shiny | Interactive data visualization with R Shiny |
-| [`shinyngs`](https://github.com/seqeralabs/custom-studios-examples/tree/shinyngs) | Shinyngs | RNA-seq exploration with the `shinyngs` R package |
-| [`ttyd`](https://github.com/seqeralabs/custom-studios-examples/tree/ttyd) | TTYD | Web-based terminal with bioinformatics tools |
-| [`waymote`](https://github.com/seqeralabs/custom-studios-examples/tree/waymote) | Waymote | Wayland desktop streamed to the browser with Waymote |
+The `.seqera/studio-config.yaml` file uses the Dockerfile template:
 
-## Quick Start: Launch from Git Repository
-
-1. Navigate to **Studios** > **Add Studio** in your Seqera Platform workspace
-2. Select **Git repository** as the source
-3. Enter the repository URL: `https://github.com/seqeralabs/custom-studios-examples`
-4. Select the branch for the studio you want (e.g., `marimo`, `cellxgene`, `streamlit`, `shiny`, `shinyngs`, `ttyd`, `waymote`)
-5. Select your compute environment
-6. Click **Add** then **Start**
-
-Each branch contains a `.seqera/` directory with:
-- `studio-config.yaml` — Studio configuration pointing to the Dockerfile
-- `Dockerfile` — Container definition with connect-client integration
-- Any supporting files required by the Dockerfile
-
-## Alternative Deployment: Pre-built Images
-
-Each studio is also available as a pre-built container image:
-
-```
-ghcr.io/seqeralabs/custom-studios-examples/marimo:latest
-ghcr.io/seqeralabs/custom-studios-examples/cellxgene:latest
-ghcr.io/seqeralabs/custom-studios-examples/streamlit:latest
-ghcr.io/seqeralabs/custom-studios-examples/shiny:latest
-ghcr.io/seqeralabs/custom-studios-examples/shinyngs:latest
-ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
-ghcr.io/seqeralabs/custom-studios-examples/waymote:latest
+```yaml
+schemaVersion: "0.0.1"
+kind: "studio-config"
+session:
+  template:
+    kind: "dockerfile"
+    dockerfile: "Dockerfile"
 ```
 
-To use a pre-built image, select **Prebuilt container image** instead of **Git repository** when adding a Studio.
-
-## Alternative Deployment: Wave CLI
-
-You can also build any studio with the [Wave CLI](https://docs.seqera.io/wave/):
+## Building locally
 
 ```bash
-# Clone only the branch you need
-git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
-
-# Build with Wave
-wave -f .seqera/Dockerfile --context .seqera --platform linux/amd64 --await --tower-token "$TOWER_ACCESS_TOKEN"
+docker build --platform linux/amd64 \
+  --build-arg CONNECT_CLIENT_VERSION=0.12 \
+  -t waymote-studio .seqera
 ```
 
-## Cloning a Specific Studio
-
-Due to the branch-per-studio model, we recommend cloning only the branch you need:
+Override the connect-client entrypoint for local runs:
 
 ```bash
-git clone https://github.com/seqeralabs/custom-studios-examples.git --single-branch --branch <studio-name>
+docker run --rm --platform linux/amd64 -p 3000:3000 \
+  -e CONNECT_TOOL_PORT=3000 \
+  --entrypoint /usr/local/bin/start-waymote \
+  waymote-studio
 ```
 
-To add another branch later:
+Open [http://localhost:3000](http://localhost:3000). Use a Chromium-based browser (WebCodecs). Super+Return opens a terminal; Super+E opens the file manager.
 
-```bash
-git remote set-branches --add origin <studio-name>
-git fetch
-```
+## Agent control
 
-## Environment Variables
+Agents can drive Waymote without browser automation by connecting to the
+`/control` WebSocket. A client sends the text message `acquire`, waits for a
+`control-state` response with `state: "active"`, then sends the 16-byte
+little-endian pointer and keyboard records documented in the
+[Waymote wire protocol](https://github.com/rockorager/waymote/blob/main/docs/protocol.md).
+Only one client owns input at a time; other clients receive `state: "busy"`.
 
-Some studios support environment variable configuration:
+This has been tested by sending Super+Return to Labwc, typing commands into the
+new terminal, and verifying their output independently from the rendered video.
 
-| Studio | Variable | Default | Description |
-|--------|----------|---------|-------------|
-| CellxGene | `DATASET_FILE` | `s3://cellxgene_datasets/pbmc3k.h5ad` | Path to .h5ad dataset |
-| CellxGene | `DATASET_TITLE` | `PBMCs 3k test dataset` | Display title |
-| CellxGene | `USER_DATA_DIR` | `/user-data/cellxgene` | User data storage |
-| CellxGene | `ANNOTATIONS_DIR` | `/user-data/cellxgene` | Annotations storage |
-| Shiny | `DATA_PATH` | `s3://shiny-inputs/data.csv` | Path to CSV data file |
-| Waymote | `WAYMOTE_WIDTH` | `1280` | Fixed remote desktop width |
-| Waymote | `WAYMOTE_HEIGHT` | `720` | Fixed remote desktop height |
-| Waymote | `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder frame rate |
-| Waymote | `WAYMOTE_BITRATE` | `8000` | Encoder bitrate in kbps |
+For a hosted Studio, the Connect proxy protects `/control` with the same
+`data-studio:view` OIDC session as the browser UI. A Seqera Platform API token
+can create and manage the Studio but does not authenticate a direct WebSocket
+client. Use an authenticated browser session or another approved Connect access
+path when controlling a hosted Studio.
 
-Studios without listed variables (Marimo, Shinyngs, Streamlit, TTYD) work with their default configurations. Waymote also accepts `WAYMOTE_XKB_LAYOUT` (default `us`).
+The image targets `linux/amd64`. In Seqera Platform, keep the image entrypoint unchanged so `connect-client` can mount Fusion data.
 
-## Common Features
+## Features
 
-All studios in this repository:
-- Use the `.seqera/` directory convention for Git-based Studio deployment
-- Include the required Seqera `connect-client` for platform integration
-- Support data mounting via datalinks in Studios
-- Are built for `linux/amd64` platform compatibility
-- Use multi-stage Docker builds with connect-client
+- Wayland-native streaming (Labwc + Waymote 0.1.4) instead of VNC
+- Browser UI with H.264 video and keyboard/pointer forwarding
+- `foot` terminal and `pcmanfm` rooted at `/workspace` for Fusion-mounted data (`/workspace/data/`)
+- Software compositor (`pixman`) and `libx264` encoder — no GPU required
+- Super+Return (terminal) and Super+E (file manager)
 
-## Documentation
+## Environment variables
 
-- [Add a Studio from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
-- [Custom studio environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
-- [Wave CLI](https://docs.seqera.io/wave/)
-- [Deploying custom applications in Seqera Studios](https://seqera.io/blog/deploy-custom-apps-studios/)
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `WAYMOTE_WIDTH` | `1280` | Fixed remote output width |
+| `WAYMOTE_HEIGHT` | `720` | Fixed remote output height |
+| `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder frame rate |
+| `WAYMOTE_BITRATE` | `8000` | Encoder target bitrate in kbps |
+| `WAYMOTE_XKB_LAYOUT` | `us` | Keyboard layout forwarded to Waymote |
 
-## Contributing
+The gateway listens on `$CONNECT_TOOL_PORT`. `-public-url` is left unset so WebSocket connections succeed behind Platform's TLS proxy.
 
-To add a new studio:
+## Notes
 
-1. Create a new branch from an empty root (orphan branch): `git checkout --orphan <studio-name>`
-2. Add a `.seqera/` directory with `studio-config.yaml` and `Dockerfile`
-3. Add a `README.md` documenting the studio
-4. Push the branch
-5. Update this README on `master` to list the new studio
+- Encoding is software (`libx264`). CPU usage scales with resolution, frame rate, and bitrate.
+- Waymote does not authenticate sessions. Platform terminates TLS and gates access.
+- Clipboard sync needs `ext_data_control_manager_v1`. Debian Trixie's Labwc 0.8.3 does not advertise that protocol, so the gateway logs `clipboard unavailable`. Capture, input, and audio still work.
+- Labwc config lives in `.seqera/labwc/` and is installed to `/etc/xdg/labwc/` in the image.
+
+## References
+
+- [Waymote](https://github.com/rockorager/waymote)
+- [Labwc](https://github.com/labwc/labwc)
+- [Seqera Studios: Import from a Git repository](https://docs.seqera.io/platform-cloud/studios/add-studio-git-repo)
+- [Seqera Studios: Custom environments](https://docs.seqera.io/platform-cloud/studios/custom-envs)
