@@ -39,7 +39,11 @@ session:
   template:
     kind: "dockerfile"
     dockerfile: "Dockerfile"
+  clone:
+    enabled: false
 ```
+
+Repository cloning is disabled. The image does not include `git`, and the repository only holds the Studio build files.
 
 ## Building locally
 
