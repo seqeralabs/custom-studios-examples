@@ -25,8 +25,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     XDG_CONFIG_HOME=/etc/xdg \
     WAYMOTE_WIDTH=1280 \
     WAYMOTE_HEIGHT=720 \
-    WAYMOTE_FRAME_RATE=30 \
-    WAYMOTE_BITRATE=8000 \
+    WAYMOTE_FRAME_RATE=60 \
+    WAYMOTE_BITRATE=12000 \
     WAYMOTE_XKB_LAYOUT=us
 
 ARG WAYMOTE_VERSION=0.1.4
@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-dejavu-core \
         foot \
         labwc \
+        nginx \
         pcmanfm \
         pulseaudio \
         pulseaudio-utils \
@@ -56,6 +57,9 @@ RUN curl -fsSL -o /tmp/waymote.tgz \
 
 COPY start-waymote /usr/local/bin/start-waymote
 COPY labwc/ /etc/xdg/labwc/
+COPY web/ /usr/local/share/waymote-studio/
+COPY nginx.conf /etc/nginx/waymote.conf
+COPY waymote-headers.conf /etc/nginx/waymote-headers.conf
 RUN chmod 0755 /usr/local/bin/start-waymote /etc/xdg/labwc/autostart \
     && mkdir -p /workspace
 

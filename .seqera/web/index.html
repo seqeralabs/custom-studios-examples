@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Waymote Studio</title>
+    <link rel="stylesheet" href="/studio.css">
+  </head>
+  <body>
+    <canvas id="display" tabindex="0" aria-label="Remote desktop"></canvas>
+    <div id="empty" class="empty">Connecting…</div>
+    <div id="toolbar" class="toolbar" role="toolbar" aria-label="Studio controls">
+      <span id="status" class="status">Connecting</span>
+      <button id="fullscreen" type="button">Full screen</button>
+      <button id="audio" type="button">Enable audio</button>
+      <button id="text-input" type="button">Text input</button>
+      <button id="send-clipboard" type="button">Paste to remote</button>
+      <button id="copy-clipboard" type="button" disabled>Copy from remote</button>
+    </div>
+    <input id="ime-proxy" class="ime-proxy" aria-label="Text input" autocomplete="off">
+    <script type="module" src="/studio.js"></script>
+  </body>
+</html>

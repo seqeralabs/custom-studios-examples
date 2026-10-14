@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Start a headless Labwc session and stream it with Waymote on CONNECT_TOOL_PORT.
+# Start a headless Labwc session, stream it with Waymote, and serve the
+# full-window Studio page with nginx on CONNECT_TOOL_PORT.
 set -euo pipefail
 
 port="${CONNECT_TOOL_PORT:-3000}"
 width="${WAYMOTE_WIDTH:-1280}"
 height="${WAYMOTE_HEIGHT:-720}"
-frame_rate="${WAYMOTE_FRAME_RATE:-30}"
-bitrate="${WAYMOTE_BITRATE:-8000}"
+frame_rate="${WAYMOTE_FRAME_RATE:-60}"
+bitrate="${WAYMOTE_BITRATE:-12000}"
 xkb_layout="${WAYMOTE_XKB_LAYOUT:-us}"
 # The Connect proxy changes the Host header, so the gateway's same-origin check
 # rejects every WebSocket. Allow this Studio's exact origin instead. Connect sets
@@ -19,6 +20,11 @@ if [[ -z "$public_url" && -n "${CONNECT_PUBLIC_ADDRESS:-}" ]]; then
     host="${host%%/*}"
     public_url="${address%%://*}://a${address##*/}.${host#*.}"
 fi
+# Waymote has no login of its own. Under Connect, the container shares the
+# host network, so listen on loopback only: connect-client dials 127.0.0.1.
+# Local docker runs need 0.0.0.0 for the published port.
+listen_host=0.0.0.0
+[[ -n "${CONNECT_PUBLIC_ADDRESS:-}" ]] && listen_host=127.0.0.1
 
 runtime_directory="$(mktemp -d /tmp/waymote-studio.XXXXXX)"
 export XDG_RUNTIME_DIR="$runtime_directory"
@@ -27,14 +33,15 @@ mkdir -p /workspace "$runtime_directory/pulse"
 
 labwc_pid=
 gateway_pid=
+nginx_pid=
 audio_pid=
 
 cleanup() {
     trap - EXIT INT TERM
-    for pid in "$gateway_pid" "$labwc_pid" "$audio_pid"; do
+    for pid in "$nginx_pid" "$gateway_pid" "$labwc_pid" "$audio_pid"; do
         [[ -n "${pid:-}" ]] && kill "$pid" 2>/dev/null || true
     done
-    for pid in "$gateway_pid" "$labwc_pid" "$audio_pid"; do
+    for pid in "$nginx_pid" "$gateway_pid" "$labwc_pid" "$audio_pid"; do
         [[ -n "${pid:-}" ]] && wait "$pid" 2>/dev/null || true
     done
     rm -rf "$runtime_directory"
@@ -107,16 +114,37 @@ fi
 
 wlr-randr --output HEADLESS-1 --custom-mode "${width}x${height}@${frame_rate}Hz"
 
-echo "[waymote] listening on 0.0.0.0:${port} (${width}x${height} @ ${frame_rate} fps)"
+# Pick a free loopback port for the gateway behind nginx.
+gateway_port=
+for _ in $(seq 1 50); do
+    candidate=$((20000 + RANDOM % 40000))
+    if ! (exec 3<>"/dev/tcp/127.0.0.1/$candidate") 2>/dev/null; then
+        gateway_port=$candidate
+        break
+    fi
+done
+if [[ -z "$gateway_port" ]]; then
+    echo "No free loopback port for the Waymote gateway" >&2
+    exit 1
+fi
+
 waymote-gateway \
-    -listen "0.0.0.0:${port}" \
+    -listen "127.0.0.1:${gateway_port}" \
     -public-url "$public_url" \
     -streamd /usr/local/bin/waymote-streamd \
     -frame-rate "$frame_rate" \
     -bitrate "$bitrate" \
-    -fixed-width "$width" \
-    -fixed-height "$height" \
     -xkb-layout "$xkb_layout" \
     -audio-source "$WAYMOTE_AUDIO_SOURCE" &
 gateway_pid=$!
-wait "$gateway_pid"
+
+sed -e "s|__RUNTIME_DIRECTORY__|$runtime_directory|" \
+    -e "s|__LISTEN_ADDRESS__|${listen_host}:${port}|" \
+    -e "s|__GATEWAY_PORT__|${gateway_port}|" \
+    /etc/nginx/waymote.conf >"$runtime_directory/nginx.conf"
+nginx -e stderr -c "$runtime_directory/nginx.conf" &
+nginx_pid=$!
+
+echo "[waymote] listening on ${listen_host}:${port} (starts at ${width}x${height} @ ${frame_rate} fps)"
+# Stop the Studio when either process exits, so Connect reports the failure.
+wait -n "$gateway_pid" "$nginx_pid"
