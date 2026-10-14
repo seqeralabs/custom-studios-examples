@@ -101,9 +101,9 @@ The image targets `linux/amd64`. In Seqera Platform, keep the image entrypoint u
 | `WAYMOTE_FRAME_RATE` | `30` | Capture and encoder frame rate |
 | `WAYMOTE_BITRATE` | `8000` | Encoder target bitrate in kbps |
 | `WAYMOTE_XKB_LAYOUT` | `us` | Keyboard layout forwarded to Waymote |
-| `WAYMOTE_PUBLIC_URL` | `https://*.connect.cloud.seqera.io` | Browser origin the gateway accepts for WebSockets |
+| `WAYMOTE_PUBLIC_URL` | Derived from `CONNECT_PUBLIC_ADDRESS` | Browser origin the gateway accepts for WebSockets |
 
-The gateway listens on `$CONNECT_TOOL_PORT`. It accepts a WebSocket only when the browser origin matches the request `Host` header or `WAYMOTE_PUBLIC_URL`. The Connect proxy can change the `Host` header, so `start-waymote` passes `WAYMOTE_PUBLIC_URL` to the gateway as `-public-url`. On Seqera Platform Enterprise, set `WAYMOTE_PUBLIC_URL` to your Connect domain, for example `https://*.connect.example.com`. Local runs on `localhost` still work because the origin matches the `Host` header.
+The gateway listens on `$CONNECT_TOOL_PORT`. It accepts a WebSocket only when the browser origin matches the request `Host` header or `-public-url`. The Connect proxy changes the `Host` header, so `start-waymote` passes this Studio's exact origin as `-public-url`. Connect sets `CONNECT_PUBLIC_ADDRESS` to `https://connect.<domain>/studios/<id>`, and the script turns it into `https://a<id>.<domain>`. Set `WAYMOTE_PUBLIC_URL` only if your Studio URL has a different form. Do not use a wildcard: it lets pages in other Studios control this desktop. Local runs on `localhost` work because the origin matches the `Host` header.
 
 ## Notes
 

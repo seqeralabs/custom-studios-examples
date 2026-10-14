@@ -8,9 +8,17 @@ height="${WAYMOTE_HEIGHT:-720}"
 frame_rate="${WAYMOTE_FRAME_RATE:-30}"
 bitrate="${WAYMOTE_BITRATE:-8000}"
 xkb_layout="${WAYMOTE_XKB_LAYOUT:-us}"
-# If the Connect proxy changes the Host header, the gateway's same-origin check
-# rejects every WebSocket. Allow the Studio origin explicitly.
-public_url="${WAYMOTE_PUBLIC_URL:-https://*.connect.cloud.seqera.io}"
+# The Connect proxy changes the Host header, so the gateway's same-origin check
+# rejects every WebSocket. Allow this Studio's exact origin instead. Connect sets
+# CONNECT_PUBLIC_ADDRESS to https://connect.<domain>/studios/<id>, and the
+# browser loads the Studio from https://a<id>.<domain>.
+public_url="${WAYMOTE_PUBLIC_URL:-}"
+if [[ -z "$public_url" && -n "${CONNECT_PUBLIC_ADDRESS:-}" ]]; then
+    address="${CONNECT_PUBLIC_ADDRESS%/}"
+    host="${address#*://}"
+    host="${host%%/*}"
+    public_url="${address%%://*}://a${address##*/}.${host#*.}"
+fi
 
 runtime_directory="$(mktemp -d /tmp/waymote-studio.XXXXXX)"
 export XDG_RUNTIME_DIR="$runtime_directory"
