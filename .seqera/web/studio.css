@@ -7,12 +7,13 @@ html, body {
   font: 13px system-ui, sans-serif;
 }
 
-/* The video already contains the remote cursor, so hide the local one. */
+/* The remote cursor is transparent. The local cursor moves without the
+   Connect round trip, so pointer movement feels instant. */
 #display {
   display: block;
   width: 100vw;
   height: 100vh;
-  cursor: none;
+  cursor: default;
   outline: none;
 }
 

@@ -69,7 +69,7 @@ Open [http://localhost:3000](http://localhost:3000). Use a Chromium-based browse
 The Studio serves its own page from `.seqera/web/` instead of the Waymote demo page:
 
 - The remote desktop fills the whole browser window. Its resolution follows the window size, up to 2560x1600 pixels. Above that, the remote desktop keeps the same layout at a lower resolution.
-- Only the remote cursor shows. The page hides the local cursor over the desktop.
+- Only the local browser cursor shows, so pointer movement has no network delay. The image replaces every remote cursor with a transparent one, so remote cursor shapes, such as the text I-beam, do not show.
 - Frames show as soon as they are decoded (latency target 0 ms).
 - Move the pointer to the top edge to show the toolbar: full screen, audio, text input, and clipboard buttons. In full screen, the browser sends Escape and Super to the remote desktop.
 

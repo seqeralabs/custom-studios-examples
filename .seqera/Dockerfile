@@ -60,8 +60,16 @@ COPY labwc/ /etc/xdg/labwc/
 COPY web/ /usr/local/share/waymote-studio/
 COPY nginx.conf /etc/nginx/waymote.conf
 COPY waymote-headers.conf /etc/nginx/waymote-headers.conf
+# The browser shows its own cursor without network delay, so make every remote
+# cursor transparent. Labwc, GTK and foot all load the Adwaita theme.
+# transparent-cursor is a 1x1 Xcursor file with one fully transparent pixel.
+COPY transparent-cursor /tmp/transparent-cursor
 RUN chmod 0755 /usr/local/bin/start-waymote /etc/xdg/labwc/autostart \
-    && mkdir -p /workspace
+    && mkdir -p /workspace \
+    && for cursor in /usr/share/icons/Adwaita/cursors/*; do \
+        rm -f "$cursor" && cp /tmp/transparent-cursor "$cursor"; \
+    done \
+    && rm /tmp/transparent-cursor
 
 ARG CONNECT_CLIENT_VERSION
 LABEL io.seqera.connect.version="${CONNECT_CLIENT_VERSION}"
