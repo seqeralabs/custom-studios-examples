@@ -87,14 +87,19 @@ curl -fsS https://blob.superlogical.com/api/releases/rex/snapshot
 
 ## Local Testing
 
-Override the entrypoint and set the Studio port yourself:
+Override the entrypoint and set the Studio port yourself. `REX_LOCAL_BIND=0.0.0.0` lets Docker forward to Rex. Both ports are published to your machine's loopback only:
 
 ```bash
-docker run -p 3000:3000 -e CONNECT_TOOL_PORT=3000 \
+docker run -d --name rex-studio-local \
+  -p 127.0.0.1:3000:3000 -p 127.0.0.1:17298:7297 \
+  -e CONNECT_TOOL_PORT=3000 -e REX_LOCAL_BIND=0.0.0.0 \
   --entrypoint /usr/local/bin/start-rex-studio.sh rex-studio
+
+rex hosts add studio-local http://127.0.0.1:17298
+rex -S studio-local new work
 ```
 
-Open http://localhost:3000 and run `rex -S http://127.0.0.1:7297 ls` in the terminal.
+The web terminal is at http://localhost:3000.
 
 ## Using in Seqera Studios
 

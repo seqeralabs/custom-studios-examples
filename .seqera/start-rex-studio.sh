@@ -15,8 +15,10 @@ args=()
 REX_LOCAL_PORT="${REX_LOCAL_PORT:-7297}"
 if [[ "$REX_LOCAL_PORT" != "off" ]]; then
     # Anonymous is safe only because the listener is bound to loopback: the
-    # Studio's SSH proxy is the only way in from outside the container.
-    args+=(--extra-listen "127.0.0.1:$REX_LOCAL_PORT" --allow-anonymous)
+    # Studio's SSH proxy is the only way in from outside the container. For
+    # local Docker runs, set REX_LOCAL_BIND=0.0.0.0 and publish the port to the
+    # host's loopback only (-p 127.0.0.1:PORT:PORT).
+    args+=(--extra-listen "${REX_LOCAL_BIND:-127.0.0.1}:$REX_LOCAL_PORT" --allow-anonymous)
 fi
 
 if [[ "${REX_TAILSCALE:-false}" == "true" ]]; then
