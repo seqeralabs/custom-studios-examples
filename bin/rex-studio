@@ -1,0 +1,847 @@
+#!/usr/bin/env bash
+# rex-studio: on-demand Seqera Studios for Rex.
+#
+#   rex-studio new [NAME] [--workspace ORG/WS] [--compute-env NAME]
+#                  [--lifespan HOURS] [--no-session] [--json]
+#   rex-studio ls [--all] [--json]
+#   rex-studio start NAME
+#   rex-studio stop NAME
+#   rex-studio rm NAME [--yes]
+#   rex-studio sync
+#   rex-studio ssh NAME
+#   rex-studio doctor
+#   rex-studio help
+#
+# new creates a Studio from the rex branch, waits for it, keeps an SSH tunnel
+# to its Rex server running (launchd on macOS, systemd --user on Linux), adds
+# a Rex host studio-NAME, and creates a Rex session NAME on it.
+# NAME is a Studio name or session ID (with or without the leading "a").
+#
+# Environment:
+#   TOWER_ACCESS_TOKEN     Seqera Platform token (or SEQERA_ACCESS_TOKEN)
+#   TOWER_API_ENDPOINT     default https://api.cloud.seqera.io
+#   REX_STUDIO_WORKSPACE   default workspace, as org/workspace
+#   REX_STUDIO_COMPUTE_ENV default compute environment name
+#   REX_STUDIO_REPO        default https://github.com/seqeralabs/custom-studios-examples
+#   REX_STUDIO_REVISION    default rex
+#   REX_STUDIO_PORT_BASE   first local tunnel port, default 20000
+
+set -euo pipefail
+
+api_base=${TOWER_API_ENDPOINT:-https://api.cloud.seqera.io}
+repo=${REX_STUDIO_REPO:-https://github.com/seqeralabs/custom-studios-examples}
+revision=${REX_STUDIO_REVISION:-rex}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/rex-studio
+agent_prefix=io.seqera.rex-studio.
+rex_port=7297
+port_base=${REX_STUDIO_PORT_BASE:-20000}
+port_span=10000
+poll_seconds=5
+ready_tries=24
+max_wait_seconds=3600
+
+usage() {
+  awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
+}
+
+die() {
+  printf 'rex-studio: %s\n' "$*" >&2
+  exit 1
+}
+
+warn() {
+  printf 'rex-studio: %s\n' "$*" >&2
+}
+
+if [[ ! $port_base =~ ^[1-9][0-9]{3,4}$ ]] || ((port_base < 1024 || port_base + port_span > 65536)); then
+  die "REX_STUDIO_PORT_BASE must be a number from 1024 to $((65536 - port_span))"
+fi
+
+rexc() {
+  env -u REX_BLOCK -u REX_SESSION rex "$@"
+}
+
+token=${TOWER_ACCESS_TOKEN:-${SEQERA_ACCESS_TOKEN:-}}
+
+require_token() {
+  [[ -n $token ]] || die "set TOWER_ACCESS_TOKEN to a Seqera Platform access token"
+}
+
+api() {
+  local method=$1 path=$2 body=${3:-}
+  local args=(-fsS -X "$method" -H "Authorization: Bearer $token" -H 'Accept: application/json')
+  if [[ -n $body ]]; then
+    args+=(-H 'Content-Type: application/json' --data "$body")
+  fi
+  curl "${args[@]}" "$api_base$path" || {
+    warn "$method $path failed"
+    return 1
+  }
+}
+
+# Turns a raw Studio object into the one record every command works with.
+# sessionId ends up in file names and launchd labels, so it must be plain.
+# shellcheck disable=SC2016 # jq variables, not shell ones
+record_jq='
+def record($wsid; $ws):
+  if (.sessionId | type) != "string" or (.sessionId | test("^[A-Za-z0-9]+$") | not)
+  then error("unexpected sessionId: \(.sessionId)")
+  elif (.statusInfo.status | type) != "string" then error("studio \(.sessionId) has no status")
+  elif .statusInfo.status == "running" and (.sshDetails.host | type) != "string"
+  then error("studio \(.sessionId) is running without SSH details")
+  else . end
+  | {
+      id: .sessionId,
+      alias: ("a" + .sessionId),
+      name,
+      label: (.sessionId as $id
+        | ("studio-" + (.name | ascii_downcase | gsub("[^a-z0-9]+"; "-") | gsub("^-+|-+$"; ""))) as $l
+        # Rex caps host labels at 64 characters.
+        | if ($l | length) <= 64 then $l
+          else ($l[0:(63 - ($id | length))] | sub("-+$"; "")) + "-" + $id end),
+      workspaceId: $wsid,
+      workspace: $ws,
+      status: .statusInfo.status,
+      message: (.statusInfo.message // ""),
+      buildUrl: (.waveBuildUrl // ""),
+      ssh: (if .sshDetails.host then {host: .sshDetails.host, port: .sshDetails.port, user: .sshDetails.user} else null end)
+    };'
+
+me=
+workspaces=
+
+load_me() {
+  [[ -z $me ]] || return 0
+  me=$(api GET /user-info | jq -er '.user.id | numbers') || die "could not read your user ID from /user-info; check TOWER_ACCESS_TOKEN"
+  workspaces=$(api GET "/user/$me/workspaces" | jq -ec '
+    [.orgsAndWorkspaces[] | select(.workspaceId != null)
+     | {id: .workspaceId, name: (.orgName + "/" + .workspaceName)}]') ||
+    die "could not list your workspaces"
+}
+
+workspace_name() {
+  jq -r --argjson id "$1" '.[] | select(.id == $id) | .name' <<<"$workspaces"
+}
+
+workspace_id() {
+  local id
+  id=$(jq -r --arg n "$1" '.[] | select(.name == $n) | .id' <<<"$workspaces")
+  [[ -n $id ]] || die "workspace $1 not found; yours are: $(jq -r 'map(.name) | join(", ")' <<<"$workspaces")"
+  printf '%s\n' "$id"
+}
+
+get_studio() {
+  local ws=$1 id=$2
+  api GET "/studios/$id?workspaceId=$ws" |
+    jq -c --argjson ws "$ws" --arg wsname "$(workspace_name "$ws")" "$record_jq record(\$ws; \$wsname)"
+}
+
+# Fills studios (one record per line) with my SSH-enabled Studios: from the
+# rex revision, or any revision with scope=all. complete=false when a
+# workspace could not be listed, so sync must not treat its Studios as gone.
+studios=
+complete=true
+load_studios() {
+  local scope=$1 ws page offset
+  load_me
+  studios=
+  complete=true
+  for ws in $(jq -r '.[].id' <<<"$workspaces"); do
+    offset=0
+    while :; do
+      if ! page=$(api GET "/studios?workspaceId=$ws&max=100&offset=$offset"); then
+        complete=false
+        break
+      fi
+      studios+=$(jq -c --argjson me "$me" --argjson ws "$ws" --arg wsname "$(workspace_name "$ws")" \
+        --arg rev "$revision" --arg scope "$scope" "$record_jq"'
+        .studios[]
+        | select(.user.id == $me and .configuration.sshEnabled == true
+                 and ($scope == "all" or .remoteConfig.revision == $rev))
+        | record($ws; $wsname)' <<<"$page")$'\n'
+      if (($(jq '.studios | length' <<<"$page") < 100)); then
+        break
+      fi
+      offset=$((offset + 100))
+    done
+  done
+  studios=$(sed '/^$/d' <<<"$studios")
+}
+
+resolve() {
+  local want=$1 matches n
+  load_studios rex
+  matches=$(jq -c --arg w "$want" 'select(.name == $w or .id == $w or .alias == $w)' <<<"$studios")
+  n=$(grep -c . <<<"$matches" || true)
+  ((n > 0)) || die "no Studio of yours from the $revision revision is named $want"
+  ((n == 1)) || die "$want matches several Studios: $(jq -r '"\(.name) (\(.id), \(.workspace))"' <<<"$matches" | paste -sd ';' - | sed 's/;/; /g')"
+  printf '%s\n' "$matches"
+}
+
+field() {
+  jq -r "$2" <<<"$1"
+}
+
+# Every command derives what to do from this one mapping:
+#   ready   -> tunnel agent up, Rex host present
+#   pending -> tunnel agent down, Rex host present (still coming up)
+#   failed  -> tunnel agent down, Rex host present (stop waiting, show message)
+#   stopped -> tunnel agent down, Rex host present
+# A Studio that no longer exists is reconciled by reconcile_absent instead.
+status_class() {
+  case $1 in
+    running) echo ready ;;
+    buildFailed | errored) echo failed ;;
+    stopping | stopped) echo stopped ;;
+    *) echo pending ;;
+  esac
+}
+
+endpoint() {
+  printf 'http://127.0.0.1:%s\n' "$1"
+}
+
+port_file() {
+  printf '%s/%s.port\n' "$state_dir" "$1"
+}
+
+stored_port() {
+  local f
+  f=$(port_file "$1")
+  [[ -f $f && $(<"$f") =~ ^[0-9]+$ ]] || return 0
+  printf '%s\n' "$(<"$f")"
+}
+
+port_open() {
+  (: <>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
+}
+
+agent_label() {
+  printf '%s%s\n' "$agent_prefix" "$1"
+}
+
+tunnel_argv() {
+  local local_port=$2 host=$3 port=$4 user=$5
+  printf '%s\n' "$(command -v ssh)" -N -p "$port" \
+    -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+    -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+    -L "127.0.0.1:$local_port:127.0.0.1:$rex_port" "$user@$host"
+}
+
+xml_escape() {
+  sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+}
+
+uid=$(id -u)
+launchd_dir=$HOME/Library/LaunchAgents
+systemd_dir=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
+
+launchd_path() {
+  printf '%s/%s.plist\n' "$launchd_dir" "$(agent_label "$1")"
+}
+
+launchd_loaded() {
+  launchctl print "gui/$uid/$(agent_label "$1")" >/dev/null 2>&1
+}
+
+launchd_render() {
+  local alias=$1 arg
+  cat <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$(agent_label "$alias")</string>
+  <key>ProgramArguments</key>
+  <array>
+EOF
+  while IFS= read -r arg; do
+    printf '    <string>%s</string>\n' "$(xml_escape <<<"$arg")"
+  done < <(tunnel_argv "$@")
+  cat <<EOF
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>$(xml_escape <<<"$state_dir/$alias.log")</string>
+  <key>StandardErrorPath</key>
+  <string>$(xml_escape <<<"$state_dir/$alias.log")</string>
+</dict>
+</plist>
+EOF
+}
+
+launchd_apply() {
+  local alias=$1 path content
+  path=$(launchd_path "$alias")
+  content=$(launchd_render "$@")
+  if [[ -f $path && $(<"$path") == "$content" ]] && launchd_loaded "$alias"; then
+    return 0
+  fi
+  write_atomic "$path" "$content"
+  launchctl bootout "gui/$uid/$(agent_label "$alias")" >/dev/null 2>&1 || true
+  launchctl bootstrap "gui/$uid" "$path"
+}
+
+launchd_remove() {
+  local alias=$1
+  launchctl bootout "gui/$uid/$(agent_label "$alias")" >/dev/null 2>&1 || true
+  rm -f "$(launchd_path "$alias")"
+}
+
+launchd_aliases() {
+  local f
+  for f in "$launchd_dir/$agent_prefix"*.plist; do
+    [[ -e $f ]] || continue
+    f=${f##*/"$agent_prefix"}
+    printf '%s\n' "${f%.plist}"
+  done
+}
+
+systemd_unit() {
+  printf 'rex-studio-%s.service\n' "$1"
+}
+
+systemd_loaded() {
+  systemctl --user is-active --quiet "$(systemd_unit "$1")"
+}
+
+systemd_render() {
+  local alias=$1 arg exec=
+  while IFS= read -r arg; do
+    exec+=" \"${arg//\"/\\\"}\""
+  done < <(tunnel_argv "$@")
+  cat <<EOF
+[Unit]
+Description=Rex tunnel to Seqera Studio $alias
+
+[Service]
+ExecStart=${exec# }
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+EOF
+}
+
+systemd_apply() {
+  local alias=$1 path content unit
+  unit=$(systemd_unit "$alias")
+  path=$systemd_dir/$unit
+  content=$(systemd_render "$@")
+  if [[ -f $path && $(<"$path") == "$content" ]] && systemd_loaded "$alias"; then
+    return 0
+  fi
+  write_atomic "$path" "$content"
+  systemctl --user daemon-reload
+  systemctl --user enable "$unit" >/dev/null
+  systemctl --user restart "$unit"
+}
+
+systemd_remove() {
+  local unit
+  unit=$(systemd_unit "$1")
+  systemctl --user disable --now "$unit" >/dev/null 2>&1 || true
+  if [[ -e $systemd_dir/$unit ]]; then
+    rm -f "$systemd_dir/$unit"
+    systemctl --user daemon-reload
+  fi
+}
+
+systemd_aliases() {
+  local f
+  for f in "$systemd_dir"/rex-studio-*.service; do
+    [[ -e $f ]] || continue
+    f=${f##*/rex-studio-}
+    printf '%s\n' "${f%.service}"
+  done
+}
+
+case $(uname -s) in
+  Darwin) agent=launchd ;;
+  Linux) agent=systemd ;;
+  *) agent=unsupported ;;
+esac
+
+write_atomic() {
+  local path=$1 tmp
+  mkdir -p "${path%/*}"
+  tmp=$(mktemp "$path.XXXXXX")
+  printf '%s\n' "$2" >"$tmp"
+  mv "$tmp" "$path"
+}
+
+agent_up() {
+  [[ $agent != unsupported ]] || die "tunnels need macOS (launchd) or Linux (systemd)"
+  "${agent}_apply" "$@"
+}
+
+agent_down() {
+  [[ $agent == unsupported ]] || "${agent}_remove" "$1"
+}
+
+tunnel_state() {
+  local alias=$1 status=$2 port
+  port=$(stored_port "$alias")
+  if [[ $(status_class "$status") != ready ]]; then
+    echo -
+  elif [[ $agent != unsupported && -n $port ]] && "${agent}_loaded" "$alias" && port_open "$port"; then
+    echo up
+  else
+    echo down
+  fi
+}
+
+# shellcheck disable=SC2016 # jq variables, not shell ones
+hosts_jq='
+def studio_hosts: [.hosts[]?.host | {label, eps: [(.endpoints // [])[] | sub("/+$"; "")]}];
+def loopback_ports: studio_hosts[] | {label, port: (.eps[] | capture("^http://(127\\.0\\.0\\.1|localhost):(?<p>[0-9]+)$").p | tonumber)};'
+
+# The port comes from the sessionId so repeated runs, and other machines that
+# share this Rex home, agree on it. It is recorded per alias before any host
+# or agent uses it, so a crash at any later point finds and reuses it.
+port_claim() {
+  local alias=$1 label=$2 port taken hosts tries=0 f
+  port=$(stored_port "$alias")
+  if [[ -n $port ]]; then
+    printf '%s\n' "$port"
+    return 0
+  fi
+  hosts=$(rexc hosts list --json) || return 1
+  taken=$(
+    for f in "$state_dir"/a*.port; do
+      [[ -e $f && $f != "$(port_file "$alias")" ]] || continue
+      f=${f##*/}
+      stored_port "${f%.port}"
+    done
+    jq -r --arg want "$label" "$hosts_jq"'loopback_ports | select((.label | ascii_downcase) != ($want | ascii_downcase)) | .port' <<<"$hosts"
+  )
+  port=$(jq -r --arg want "$label" --argjson lo "$port_base" --argjson hi "$((port_base + port_span))" "$hosts_jq"'
+    [loopback_ports | select((.label | ascii_downcase) == ($want | ascii_downcase) and .port >= $lo and .port < $hi) | .port]
+    | first // empty' <<<"$hosts")
+  if [[ -z $port ]] || grep -qxF "$port" <<<"$taken"; then
+    port=$((port_base + $(printf '%s' "${alias#a}" | cksum | cut -d' ' -f1) % port_span))
+    while grep -qxF "$port" <<<"$taken"; do
+      ((++tries < port_span)) || die "no free tunnel port from $port_base to $((port_base + port_span - 1))"
+      port=$((port_base + (port - port_base + 1) % port_span))
+    done
+  fi
+  write_atomic "$(port_file "$alias")" "$port"
+  printf '%s\n' "$port"
+}
+
+host_ensure() {
+  local label=$1 ep action
+  ep=$(endpoint "$2")
+  action=$(rexc hosts list --json | jq -r --arg ep "$ep" --arg label "$label" "$hosts_jq"'
+    studio_hosts as $h
+    | ($label | ascii_downcase) as $want
+    | ($h | map(select(.eps | index($ep))) | first) as $mine
+    | ($h | map(select(.label | ascii_downcase == $want)) | first) as $named
+    | if $mine != null then
+        if ($mine.label | ascii_downcase) == $want and $mine.eps == [$ep] then "ok"
+        else "edit\t\($mine.label)" end
+      elif $named != null then "taken"
+      else "add" end')
+  case $action in
+    ok) ;;
+    add) rexc hosts add "$label" "$ep" >/dev/null ;;
+    taken)
+      warn "Rex host $label already exists for something else; rename or remove it"
+      return 1
+      ;;
+    edit*)
+      local current=${action#*$'\t'}
+      if [[ $(tr '[:upper:]' '[:lower:]' <<<"$current") == "$label" ]]; then
+        rexc hosts edit "$current" --endpoint "$ep" >/dev/null
+      else
+        rexc hosts edit "$current" --label "$label" --endpoint "$ep" >/dev/null
+      fi
+      ;;
+  esac
+}
+
+host_remove() {
+  local port ep label
+  port=$(stored_port "$1")
+  [[ -n $port ]] || return 0
+  ep=$(endpoint "$port")
+  while IFS= read -r label; do
+    [[ -n $label ]] && rexc hosts remove "$label" >/dev/null
+  done < <(rexc hosts list --json | jq -r --arg ep "$ep" "$hosts_jq"'
+    studio_hosts[] | select(.eps | index($ep)) | .label')
+}
+
+reconcile() {
+  local rec=$1 alias label status port
+  alias=$(field "$rec" .alias)
+  label=$(field "$rec" .label)
+  status=$(field "$rec" .status)
+  mkdir -p "$state_dir"
+  chmod 700 "$state_dir"
+  port=$(port_claim "$alias" "$label") || return 1
+  if [[ $(status_class "$status") == ready ]]; then
+    agent_up "$alias" "$port" "$(field "$rec" .ssh.host)" "$(field "$rec" .ssh.port)" "$(field "$rec" .ssh.user)" || return 1
+  else
+    agent_down "$alias" || return 1
+  fi
+  host_ensure "$label" "$port"
+}
+
+reconcile_absent() {
+  local alias=$1
+  agent_down "$alias"
+  host_remove "$alias"
+  rm -f "$(port_file "$alias")" "$state_dir/$alias.log"
+}
+
+progress() {
+  if [[ -t 2 ]]; then
+    printf '\r\033[K%s' "$1" >&2
+  else
+    printf '%s\n' "$1" >&2
+  fi
+}
+
+# Polls until the Studio runs and prints its record. A Studio reads stopped
+# for a moment right after a start request, so stopped only counts as a
+# failure once it was seen building or starting.
+wait_running() {
+  local ws=$1 id=$2 started=$SECONDS rec status class last='' url_shown=false moved=false
+  while :; do
+    rec=$(get_studio "$ws" "$id")
+    status=$(field "$rec" .status)
+    class=$(status_class "$status")
+    if [[ $class == ready ]]; then
+      [[ -t 2 ]] && printf '\n' >&2
+      printf '%s\n' "$rec"
+      return 0
+    fi
+    if [[ $class == failed || ($class == stopped && $moved == true) ]]; then
+      [[ -t 2 ]] && printf '\n' >&2
+      local msg
+      msg=$(field "$rec" .message)
+      if [[ $msg == *"ECR authorization token"* ]]; then
+        msg+=$'\n'"This workspace cannot build Git-based Studios; try another one with --workspace."
+      fi
+      die "Studio $(field "$rec" .name) is $status${msg:+: $msg}"
+    fi
+    [[ $class == pending ]] && moved=true
+    if [[ -t 2 || $status != "$last" ]]; then
+      progress "$(field "$rec" .name): $status ($((SECONDS - started))s)"
+    fi
+    if [[ $url_shown == false && -n $(field "$rec" .buildUrl) ]]; then
+      [[ -t 2 ]] && printf '\n' >&2
+      printf 'build: %s\n' "$(field "$rec" .buildUrl)" >&2
+      url_shown=true
+    fi
+    last=$status
+    ((SECONDS - started < max_wait_seconds)) || die "Studio $(field "$rec" .name) still $status after $((max_wait_seconds / 60)) minutes"
+    sleep "$poll_seconds"
+  done
+}
+
+wait_ready() {
+  local label=$1 alias=$2 i
+  for ((i = 0; i < ready_tries; i++)); do
+    if rexc -S "$label" server status >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$poll_seconds"
+  done
+  die "Rex on $label did not answer after $((ready_tries * poll_seconds))s; tunnel log: $state_dir/$alias.log"
+}
+
+ssh_command() {
+  printf 'ssh -p %s %s@%s\n' "$(field "$1" .ssh.port)" "$(field "$1" .ssh.user)" "$(field "$1" .ssh.host)"
+}
+
+cmd_new() {
+  local name='' ws_name=${REX_STUDIO_WORKSPACE:-} ce_name=${REX_STUDIO_COMPUTE_ENV:-} lifespan=12
+  local session=true json=false
+  while (($#)); do
+    case $1 in
+      --workspace) ws_name=${2:?--workspace needs ORG/WS}; shift ;;
+      --compute-env) ce_name=${2:?--compute-env needs NAME}; shift ;;
+      --lifespan) lifespan=${2:?--lifespan needs HOURS}; shift ;;
+      --no-session) session=false ;;
+      --json) json=true ;;
+      -*) die "unknown option $1" ;;
+      *) [[ -z $name ]] || die "unexpected argument $1"; name=$1 ;;
+    esac
+    shift
+  done
+  [[ $lifespan =~ ^[1-9][0-9]*$ ]] || die "--lifespan must be a whole number of hours"
+  [[ -n $ws_name ]] || die "set REX_STUDIO_WORKSPACE or pass --workspace ORG/WS"
+  [[ $ws_name == */* ]] || die "workspace must look like org/workspace, got $ws_name"
+  name=${name:-rex-$(date +%m%d-%H%M)}
+  require_token
+  load_me
+  local ws ces ce body id rec label
+  ws=$(workspace_id "$ws_name")
+
+  ces=$(api GET "/compute-envs?workspaceId=$ws&status=AVAILABLE")
+  ce=$(jq -r --arg want "$ce_name" '
+    [.computeEnvs[]
+     | select(if $want != "" then .name == $want else (.name | ascii_downcase | contains("studio")) end)]
+    | if length == 1 then .[0].id else empty end' <<<"$ces")
+  if [[ -z $ce ]]; then
+    local names
+    names=$(jq -r '[.computeEnvs[].name] | join(", ")' <<<"$ces")
+    if [[ -n $ce_name ]]; then
+      die "no available compute environment named $ce_name in $ws_name; available: $names"
+    fi
+    die "pick a compute environment with --compute-env or REX_STUDIO_COMPUTE_ENV; available: $names"
+  fi
+
+  body=$(jq -nc --arg name "$name" --arg ce "$ce" --arg repo "$repo" --arg rev "$revision" \
+    --argjson hours "$lifespan" '{
+      name: $name,
+      description: "Rex Studio created by rex-studio",
+      computeEnvId: $ce,
+      remoteConfig: {repository: $repo, revision: $rev},
+      configuration: {lifespanHours: $hours, sshEnabled: true},
+      isPrivate: true
+    }')
+  id=$(api POST "/studios?workspaceId=$ws&autoStart=true" "$body" | jq -er '.studio.sessionId | strings') ||
+    die "Platform did not return a Studio session ID"
+  progress "created Studio $name ($id) in $ws_name"
+
+  rec=$(wait_running "$ws" "$id")
+  label=$(field "$rec" .label)
+  reconcile "$rec"
+  wait_ready "$label" "$(field "$rec" .alias)"
+  if [[ $session == true ]]; then
+    rexc -S "$label" new "$name" >/dev/null
+  fi
+  if [[ $(uname -s) == Darwin && -t 1 && $json == false ]]; then
+    open -a "Rex Beta" || true
+  fi
+
+  if [[ $json == true ]]; then
+    printf '%s\n' "$rec"
+    return
+  fi
+  printf 'Studio %s is running in %s.\n' "$name" "$(field "$rec" .workspace)"
+  printf '  Rex host  %s\n' "$label"
+  printf '  SSH       %s\n' "$(ssh_command "$rec")"
+  printf '  Use it    rex -S %s\n' "$label"
+}
+
+cmd_ls() {
+  local scope=rex json=false rec rows=
+  while (($#)); do
+    case $1 in
+      --all) scope=all ;;
+      --json) json=true ;;
+      *) die "unknown option $1" ;;
+    esac
+    shift
+  done
+  require_token
+  load_studios "$scope"
+  if [[ -z $studios ]]; then
+    if [[ $json == true ]]; then echo '[]'; else echo "No Studios. Create one with: rex-studio new"; fi
+    return 0
+  fi
+  while IFS= read -r -u 3 rec; do
+    rows+=$(jq -c --arg t "$(tunnel_state "$(field "$rec" .alias)" "$(field "$rec" .status)")" '. + {tunnel: $t}' <<<"$rec")$'\n'
+  done 3<<<"$studios"
+  if [[ $json == true ]]; then
+    jq -s 'sort_by(.workspace, .name)' <<<"$rows"
+    return
+  fi
+  {
+    printf 'NAME\tSTATUS\tWORKSPACE\tTUNNEL\tHOST\n'
+    jq -sr 'sort_by(.workspace, .name)[] | [.name, .status, .workspace, .tunnel, .label] | @tsv' <<<"$rows"
+  } | column -t -s $'\t'
+}
+
+cmd_start() {
+  [[ $# -eq 1 ]] || die "usage: rex-studio start NAME"
+  require_token
+  local rec ws id
+  rec=$(resolve "$1")
+  ws=$(field "$rec" .workspaceId)
+  id=$(field "$rec" .id)
+  if [[ $(status_class "$(field "$rec" .status)") != ready ]]; then
+    api PUT "/studios/$id/start?workspaceId=$ws" '{}' >/dev/null
+    rec=$(wait_running "$ws" "$id")
+  fi
+  reconcile "$rec"
+  wait_ready "$(field "$rec" .label)" "$(field "$rec" .alias)"
+  printf 'Studio %s is running. Use it with: rex -S %s\n' "$(field "$rec" .name)" "$(field "$rec" .label)"
+}
+
+cmd_stop() {
+  [[ $# -eq 1 ]] || die "usage: rex-studio stop NAME"
+  require_token
+  local rec ws id
+  rec=$(resolve "$1")
+  ws=$(field "$rec" .workspaceId)
+  id=$(field "$rec" .id)
+  api PUT "/studios/$id/stop?workspaceId=$ws" >/dev/null
+  local i
+  for ((i = 0; i < ready_tries; i++)); do
+    rec=$(get_studio "$ws" "$id")
+    [[ $(status_class "$(field "$rec" .status)") == ready ]] || break
+    sleep "$poll_seconds"
+  done
+  reconcile "$rec"
+  printf 'Studio %s is %s.\n' "$(field "$rec" .name)" "$(field "$rec" .status)"
+}
+
+# Platform refuses to delete a Studio in any other state.
+deletable() {
+  case $1 in
+    stopped | errored | buildFailed) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+cmd_rm() {
+  local name='' yes=false
+  while (($#)); do
+    case $1 in
+      --yes | -y) yes=true ;;
+      -*) die "unknown option $1" ;;
+      *) [[ -z $name ]] || die "unexpected argument $1"; name=$1 ;;
+    esac
+    shift
+  done
+  [[ -n $name ]] || die "usage: rex-studio rm NAME [--yes]"
+  require_token
+  local rec answer
+  rec=$(resolve "$name")
+  if [[ $yes != true ]]; then
+    [[ -t 0 ]] || die "deleting a Studio cannot be undone; pass --yes to confirm"
+    read -r -p "Delete Studio $(field "$rec" .name) in $(field "$rec" .workspace)? This cannot be undone. [y/N] " answer
+    [[ $answer == [yY] || $answer == [yY][eE][sS] ]] || die "not deleted"
+  fi
+  local ws id status started=$SECONDS
+  ws=$(field "$rec" .workspaceId)
+  id=$(field "$rec" .id)
+  status=$(field "$rec" .status)
+  if ! deletable "$status"; then
+    api PUT "/studios/$id/stop?workspaceId=$ws" >/dev/null
+    until deletable "$status"; do
+      ((SECONDS - started < max_wait_seconds)) || die "Studio $(field "$rec" .name) still $status after $((max_wait_seconds / 60)) minutes; not deleted"
+      progress "$(field "$rec" .name): $status ($((SECONDS - started))s)"
+      sleep "$poll_seconds"
+      status=$(field "$(get_studio "$ws" "$id")" .status)
+    done
+    [[ -t 2 ]] && printf '\n' >&2
+  fi
+  api DELETE "/studios/$id?workspaceId=$ws" >/dev/null
+  reconcile_absent "$(field "$rec" .alias)"
+  printf 'Deleted Studio %s.\n' "$(field "$rec" .name)"
+}
+
+cmd_sync() {
+  [[ $# -eq 0 ]] || die "usage: rex-studio sync"
+  require_token
+  load_studios rex
+  local rec alias failed=false live
+  while IFS= read -r -u 3 rec; do
+    [[ -n $rec ]] || continue
+    reconcile "$rec" || failed=true
+  done 3<<<"$studios"
+
+  if [[ $complete != true ]]; then
+    warn "some workspaces could not be listed; keeping tunnels and hosts of Studios not seen"
+  else
+    live=$(jq -r '.alias' <<<"$studios")
+    while IFS= read -r -u 3 alias; do
+      [[ -n $alias ]] || continue
+      grep -qxF "$alias" <<<"$live" || reconcile_absent "$alias"
+    done 3< <(
+      {
+        [[ $agent == unsupported ]] || "${agent}_aliases"
+        for f in "$state_dir"/a*.port; do
+          [[ -e $f ]] || continue
+          f=${f##*/}
+          printf '%s\n' "${f%.port}"
+        done
+      } | sort -u
+    )
+  fi
+  [[ $failed == false ]] || die "some Studios could not be reconciled"
+}
+
+cmd_ssh() {
+  [[ $# -eq 1 ]] || die "usage: rex-studio ssh NAME"
+  require_token
+  local rec
+  rec=$(resolve "$1")
+  [[ $(status_class "$(field "$rec" .status)") == ready ]] ||
+    die "Studio $(field "$rec" .name) is $(field "$rec" .status); start it with: rex-studio start $1"
+  exec ssh -p "$(field "$rec" .ssh.port)" "$(field "$rec" .ssh.user)@$(field "$rec" .ssh.host)"
+}
+
+cmd_doctor() {
+  local failed=0 tool rec
+  pass() { printf 'ok    %s\n' "$*"; }
+  fail() { printf 'FAIL  %s\n' "$*"; failed=$((failed + 1)); }
+
+  for tool in jq curl ssh rex; do
+    if command -v "$tool" >/dev/null; then pass "$tool found"; else fail "$tool not found on PATH"; fi
+  done
+  if [[ -z $token ]]; then
+    fail "TOWER_ACCESS_TOKEN is not set"
+    return 1
+  fi
+  if ! api GET /user-info 2>/dev/null | jq -e '.user.id | numbers' >/dev/null; then
+    fail "token rejected by $api_base/user-info"
+    return 1
+  fi
+  pass "token accepted by $api_base"
+  load_me
+  if [[ -z ${REX_STUDIO_WORKSPACE:-} ]]; then
+    fail "REX_STUDIO_WORKSPACE is not set; yours are: $(jq -r 'map(.name) | join(", ")' <<<"$workspaces")"
+  elif jq -e --arg n "$REX_STUDIO_WORKSPACE" 'any(.[]; .name == $n)' <<<"$workspaces" >/dev/null; then
+    pass "workspace $REX_STUDIO_WORKSPACE is visible"
+  else
+    fail "workspace $REX_STUDIO_WORKSPACE is not visible to you; yours are: $(jq -r 'map(.name) | join(", ")' <<<"$workspaces")"
+  fi
+
+  load_studios all
+  rec=$(jq -c 'select(.status == "running")' <<<"$studios" | head -n 1)
+  if [[ -z $rec ]]; then
+    pass "ssh key check skipped: no running Studio"
+  elif ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
+    -p "$(field "$rec" .ssh.port)" "$(field "$rec" .ssh.user)@$(field "$rec" .ssh.host)" true </dev/null >/dev/null 2>&1; then
+    pass "ssh key accepted by Studio $(field "$rec" .name)"
+  else
+    fail "ssh key refused by Studio $(field "$rec" .name); add your public key to your Seqera profile"
+  fi
+  ((failed == 0))
+}
+
+main() {
+  local cmd=${1:-help}
+  (($#)) && shift
+  case $cmd in
+    new) cmd_new "$@" ;;
+    ls | list) cmd_ls "$@" ;;
+    start) cmd_start "$@" ;;
+    stop) cmd_stop "$@" ;;
+    rm | delete) cmd_rm "$@" ;;
+    sync) cmd_sync "$@" ;;
+    ssh) cmd_ssh "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    help | -h | --help) usage ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

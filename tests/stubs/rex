@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Fake rex: keeps hosts in $STUB_STATE/rex-hosts.json and, like the real one,
+# refuses duplicate labels and local socket endpoints.
+# shellcheck disable=SC2016 # jq programs
+set -euo pipefail
+
+printf 'rex %s [REX_BLOCK=%s REX_SESSION=%s]\n' "$*" "${REX_BLOCK-unset}" "${REX_SESSION-unset}" >>"$STUB_LOG"
+
+hosts=$STUB_STATE/rex-hosts.json
+[[ -f $hosts ]] || echo '{"hosts":[]}' >"$hosts"
+if [[ ${1:-} == -S ]]; then
+  shift 2
+fi
+
+update() {
+  local tmp
+  tmp=$(mktemp)
+  jq "$@" "$hosts" >"$tmp"
+  mv "$tmp" "$hosts"
+}
+
+reachable() {
+  if [[ $1 == unix://* || $1 == /* ]]; then
+    echo "Error: $1 is a local socket, which other machines cannot reach" >&2
+    exit 2
+  fi
+}
+
+has_label() {
+  jq -e --arg l "$1" 'any(.hosts[]; .host.label | ascii_downcase == ($l | ascii_downcase))' "$hosts" >/dev/null
+}
+
+case "${1:-} ${2:-}" in
+  "hosts list") cat "$hosts" ;;
+  "hosts add")
+    reachable "$4"
+    ((${#3} <= 64)) || { echo "Error: host record label: is longer than 64 characters" >&2; exit 2; }
+    has_label "$3" && { echo "Error: a host called $3 already exists" >&2; exit 1; }
+    update --arg l "$3" --arg e "$4" '.hosts += [{host: {label: $l, endpoints: [$e]}, from: "home"}]'
+    ;;
+  "hosts edit")
+    label=$3 new='' ep=''
+    shift 3
+    while (($#)); do
+      case $1 in
+        --label) new=$2; shift ;;
+        --endpoint) reachable "$2"; ep=$2; shift ;;
+      esac
+      shift
+    done
+    has_label "$label" || { echo "Error: no host called $label" >&2; exit 1; }
+    update --arg l "$label" --arg n "$new" --arg e "$ep" '
+      .hosts |= map(if (.host.label | ascii_downcase) == ($l | ascii_downcase)
+        then .host.label = (if $n == "" then .host.label else $n end)
+             | .host.endpoints = (if $e == "" then .host.endpoints else [$e] end)
+        else . end)'
+    ;;
+  "hosts remove")
+    has_label "$3" || { echo "Error: no host called $3" >&2; exit 1; }
+    update --arg l "$3" '.hosts |= map(select((.host.label | ascii_downcase) != ($l | ascii_downcase)))'
+    ;;
+  "server status") [[ ! -f $STUB_STATE/rex-unreachable ]] ;;
+  *) ;;
+esac

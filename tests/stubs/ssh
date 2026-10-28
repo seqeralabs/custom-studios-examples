@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+printf 'ssh %s\n' "$*" >>"$STUB_LOG"
+
+exit "${SSH_STUB_EXIT:-0}"

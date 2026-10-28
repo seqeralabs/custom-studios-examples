@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fake launchctl: tracks loaded agent labels in $STUB_STATE/launchd-loaded.
+set -euo pipefail
+
+printf 'launchctl %s\n' "$*" >>"$STUB_LOG"
+loaded=$STUB_STATE/launchd-loaded
+touch "$loaded"
+
+case $1 in
+  print) grep -qxF "${2##*/}" "$loaded" || exit 113 ;;
+  bootstrap)
+    label=$(basename "$3" .plist)
+    [[ -f $3 ]] || { echo "Bootstrap failed: 2: No such file" >&2; exit 5; }
+    grep -qxF "$label" "$loaded" && { echo "Bootstrap failed: 5: already loaded" >&2; exit 5; }
+    echo "$label" >>"$loaded"
+    ;;
+  bootout)
+    label=${2##*/}
+    grep -qxF "$label" "$loaded" || { echo "Boot-out failed: 3: No such process" >&2; exit 3; }
+    grep -vxF "$label" "$loaded" >"$loaded.tmp" || true
+    mv "$loaded.tmp" "$loaded"
+    ;;
+esac

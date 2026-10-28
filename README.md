@@ -11,6 +11,7 @@ This example runs a [Rex](https://www.superlogical.com/rex/docs) server inside a
 - [Building the Container](#building-the-container)
 - [Local Testing](#local-testing)
 - [Using in Seqera Studios](#using-in-seqera-studios)
+- [On-demand Studios with rex-studio](#on-demand-studios-with-rex-studio)
 - [Environment Variables](#environment-variables)
 - [Notes](#notes)
 - [References](#references)
@@ -125,6 +126,34 @@ The web terminal is at http://localhost:3000.
    In Rex for Mac, choose **Add Remote Host…** and enter `http://127.0.0.1:17297`.
 
 Rex sessions live as long as the Studio does. If the tunnel drops, reopen it and reconnect. The sessions are still there.
+
+## On-demand Studios with rex-studio
+
+`bin/rex-studio` does the steps above in one command. It creates a Studio from this branch and waits for it to run. It keeps the SSH tunnel up as a launchd agent on macOS or a systemd user service on Linux, adds a Rex host, and opens a Rex session on it.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/seqeralabs/custom-studios-examples/rex/install.sh | sh
+export TOWER_ACCESS_TOKEN=<token>
+export REX_STUDIO_WORKSPACE=<org>/<workspace>
+rex-studio doctor
+rex-studio new work
+rex -S studio-work ls
+```
+
+| Command | What it does |
+|---------|--------------|
+| `rex-studio new [NAME]` | Create a Studio, its tunnel, Rex host `studio-NAME`, and Rex session `NAME` |
+| `rex-studio ls [--all]` | Your Studios from this branch, with status and tunnel state |
+| `rex-studio start NAME` / `stop NAME` | Start or stop a Studio and its tunnel |
+| `rex-studio rm NAME [--yes]` | Delete a Studio, its tunnel and its Rex host |
+| `rex-studio sync` | Bring tunnels and Rex hosts in line with your Studios |
+| `rex-studio ssh NAME` | Open a shell in a Studio |
+
+Each tunnel listens on its own port on `127.0.0.1`, from 20000 up (set `REX_STUDIO_PORT_BASE` to move the range), and the Rex host points at `http://127.0.0.1:PORT`. A Studio keeps the same port across runs. Run `rex-studio help` for every option. Tunnel ports and logs are in `~/.local/state/rex-studio`. To set it up with a coding agent, paste [INSTALL-PROMPT.md](INSTALL-PROMPT.md) into it.
+
+To get **New Seqera Studio** and **List Seqera Studios** in the Rex command palette, paste [rex-actions.lua](rex-actions.lua) into `~/.config/rex/init.lua` and run `rex config reload`.
+
+The tests stub every external command: `bats tests/rex-studio.bats`.
 
 ## Environment Variables
 

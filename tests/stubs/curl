@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Serves $FIXTURES/<METHOD_path_with_query> for the requested URL. A directory
+# fixture is a sequence: each call serves the next numbered file, then the
+# last one again. A missing fixture fails like curl -f on a 404.
+set -euo pipefail
+
+method=GET body='' url=''
+while (($#)); do
+  case $1 in
+    -X) method=$2; shift ;;
+    --data) body=$2; shift ;;
+    -H) shift ;;
+    -*) ;;
+    *) url=$1 ;;
+  esac
+  shift
+done
+path=/${url#*://*/}
+printf 'curl %s %s %s\n' "$method" "$path" "$body" >>"$STUB_LOG"
+
+key=$(printf '%s %s' "$method" "$path" | tr -c 'A-Za-z0-9' '_')
+f=$FIXTURES/$key
+if [[ -d $f ]]; then
+  n=$(($(cat "$f/.n" 2>/dev/null || echo 0) + 1))
+  if [[ -f $f/$n ]]; then
+    echo "$n" >"$f/.n"
+    cat "$f/$n"
+  else
+    cat "$f/$(cat "$f/.n")"
+  fi
+elif [[ -f $f ]]; then
+  cat "$f"
+else
+  echo "curl: (22) The requested URL returned error: 404 ($method $path)" >&2
+  exit 22
+fi

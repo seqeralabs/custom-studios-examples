@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+if [[ ${1:-} == -s ]]; then echo "${STUB_OS:-Darwin}"; else command -p uname "$@"; fi

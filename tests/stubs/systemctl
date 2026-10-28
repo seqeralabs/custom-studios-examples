@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Fake systemctl --user: tracks active units in $STUB_STATE/systemd-active.
+set -euo pipefail
+
+printf 'systemctl %s\n' "$*" >>"$STUB_LOG"
+active=$STUB_STATE/systemd-active
+touch "$active"
+[[ $1 == --user ]] && shift
+
+case $1 in
+  is-active) grep -qxF "${!#}" "$active" ;;
+  restart | start) grep -qxF "$2" "$active" || echo "$2" >>"$active" ;;
+  disable | stop)
+    grep -vxF "${!#}" "$active" >"$active.tmp" || true
+    mv "$active.tmp" "$active"
+    ;;
+esac
