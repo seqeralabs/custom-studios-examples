@@ -134,6 +134,7 @@ rex_host_endpoints() {
   grep -qF 'rex -S studio-demo new demo' "$STUB_LOG"
   [[ $output == *"rex -S studio-demo"* ]]
   [[ $output == *"ssh -p 2222 edmund@a6afaa755@connect.cloud.seqera.io"* ]]
+  [[ $output == *"Add Remote Host"*"$ENDPOINT"* ]]
   refute grep -q '^open' "$STUB_LOG"
 }
 
@@ -370,6 +371,7 @@ rex_host_endpoints() {
   fixture_seq GET '/studios/6afaa755?workspaceId=100' \
     "$(studio 6afaa755 demo running)" "$(studio 6afaa755 demo stopping)" "$(studio 6afaa755 demo stopped)"
   fixture DELETE '/studios/6afaa755?workspaceId=100' ''
+  : >"$XDG_STATE_HOME/rex-studio/a6afaa755.log"
   : >"$STUB_LOG"
 
   run "$BIN" rm a6afaa755 --yes
@@ -378,7 +380,8 @@ rex_host_endpoints() {
   [ "$(sed -n '/^curl DELETE/q;/^curl GET \/studios\/6afaa755/p' "$STUB_LOG" | wc -l)" -ge 3 ]
   [ ! -e "$PLIST" ]
   [ -z "$(rex_host_endpoints studio-demo)" ]
-  [ -z "$(ls "$XDG_STATE_HOME/rex-studio" | grep a6afaa755)" ]
+  [ ! -e "$XDG_STATE_HOME/rex-studio/a6afaa755.port" ]
+  [ ! -e "$XDG_STATE_HOME/rex-studio/a6afaa755.log" ]
 }
 
 @test "rm deletes a stopped or failed Studio without stopping it" {

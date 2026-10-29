@@ -633,6 +633,10 @@ cmd_new() {
   printf '  Rex host  %s\n' "$label"
   printf '  SSH       %s\n' "$(ssh_command "$rec")"
   printf '  Use it    rex -S %s\n' "$label"
+  # The Rex app's sidebar keeps its own server list, which rex hosts add
+  # does not reach and no client action can fill in.
+  printf '  Sidebar   Add Remote Host… in the Rex app, URL %s, name %s\n' \
+    "$(endpoint "$(stored_port "$(field "$rec" .alias)")")" "$label"
 }
 
 cmd_ls() {
