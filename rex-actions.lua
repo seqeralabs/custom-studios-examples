@@ -1,17 +1,18 @@
 -- Seqera Studio actions for Rex. Paste into ~/.config/rex/init.lua, then run
--- `rex config reload`. Needs rex-studio on the PATH of your login shell.
+-- `rex config reload`. Needs rex-studio on the PATH of your interactive shell.
 
 local function shell_quote(s)
   return "'" .. string.gsub(s, "'", "'\\''") .. "'"
 end
 
--- A login shell, so PATH and TOWER_ACCESS_TOKEN from your profile apply.
+-- An interactive login shell, so PATH and TOWER_ACCESS_TOKEN apply even when
+-- they are set in .zshrc or .bashrc rather than the profile.
 local function run_in_window(command)
   local shell = os.getenv("SHELL") or "/bin/sh"
   local w, err = rex.session.new_window {
     layout = rex.layout.block {
       flavor = "com.superlogical.terminal.shell",
-      options = { command = { shell, "-lc", command .. '; exec "$SHELL" -l' } },
+      options = { command = { shell, "-lic", command .. '; exec "$SHELL" -l' } },
     },
   }
   if err ~= nil then error(err, 0) end
