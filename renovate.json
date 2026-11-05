@@ -25,8 +25,8 @@
   ],
   "automerge": false,
   "labels": ["dependencies"],
-  "prHourlyLimit": 5,
-  "prConcurrentLimit": 10,
+  "prHourlyLimit": 20,
+  "prConcurrentLimit": 30,
   "customManagers": [
     {
       "customType": "regex",
@@ -52,7 +52,8 @@
       "description": "Group connect-client updates across Dockerfiles and workflows",
       "groupName": "connect-client",
       "matchDepNames": ["public.cr.seqera.io/platform/connect-client"],
-      "matchManagers": ["custom.regex", "dockerfile"]
+      "matchManagers": ["custom.regex", "dockerfile"],
+      "prPriority": 10
     },
     {
       "description": "Group Python base image updates",
