@@ -27,7 +27,7 @@ RUN apt-get update --yes && apt-get install --yes --no-install-recommends \
 # Install micromamba
 # ---------------------------------------------------------------
 ENV MAMBA_ROOT_PREFIX=/opt/conda
-RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest \
+RUN wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest \
   | tar -xvj --strip-components=1 bin/micromamba \
   && mv micromamba /usr/local/bin/micromamba \
   && mkdir -p /opt/conda \
