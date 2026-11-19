@@ -63,7 +63,7 @@ The application automatically converts cloud storage paths to local Studio paths
 
 ```bash
 cd .seqera
-docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t shiny-studio .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.15 -t shiny-studio .
 ```
 
 ## References
