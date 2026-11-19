@@ -151,9 +151,10 @@ def default_notices(env, root):
         notices.append(
             "OPENCODE_DATA_LINK is not set. Work files, config and database "
             f"backups are kept in {root} inside this Studio. Only Studio "
-            "checkpoints keep them: they return when this Studio is stopped "
-            "and started, a new Studio starts empty, and nothing is written "
-            "to cloud storage. Set OPENCODE_DATA_LINK to a writable data-link "
+            "checkpoints keep them, in the compute environment's work "
+            "directory: they return when this Studio is stopped and started, "
+            "a Studio launched afresh starts empty, and nothing is written to "
+            "a data link. Set OPENCODE_DATA_LINK to a writable data-link "
             "mount to keep them there."
         )
     return notices

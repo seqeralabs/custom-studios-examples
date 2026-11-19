@@ -1,7 +1,7 @@
 schemaVersion: "0.0.1"
 kind: "studio-config"
 session:
-  description: "OpenCode v2 with Seqera MCP and Fusion-backed work files"
+  description: "OpenCode v2 with Seqera MCP and optional Fusion-backed work files"
   template:
     kind: "dockerfile"
     dockerfile: "Dockerfile"
