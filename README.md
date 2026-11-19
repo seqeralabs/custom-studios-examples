@@ -51,7 +51,7 @@ ghcr.io/seqeralabs/custom-studios-examples/ttyd:latest
 
 ```bash
 cd .seqera
-docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.9 -t ttyd-studio .
+docker build --platform=linux/amd64 --build-arg CONNECT_CLIENT_VERSION=0.15 -t ttyd-studio .
 ```
 
 ## References
