@@ -1,4 +1,4 @@
-ARG CONNECT_CLIENT_VERSION=0.14
+ARG CONNECT_CLIENT_VERSION=0.15
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 FROM node:22.22.3-bookworm-slim
 ARG CONNECT_CLIENT_VERSION

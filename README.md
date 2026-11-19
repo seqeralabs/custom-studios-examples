@@ -32,7 +32,7 @@ Data links must be selected in Platform; `studio-config.yaml` cannot declare the
 | `OPENCODE_BACKUP_INTERVAL` | `60` | Seconds between database backups; minimum 5 |
 | `CONNECT_TOOL_PORT` | Set by Platform | Web/API port; 3000 for local tests |
 
-OpenCode **2.0.23**, Node.js **22.22.3** and Connect **0.14** are pinned in the Dockerfile. Use the runtime environment or OpenCode's provider connection UI for credentials. Keep secrets outside the build context and version control. The agent has access to the container environment and mounted files; only trusted users should access this Studio.
+OpenCode **2.0.23**, Node.js **22.22.3** and Connect **0.15** are pinned in the Dockerfile. Use the runtime environment or OpenCode's provider connection UI for credentials. Keep secrets outside the build context and version control. The agent has access to the container environment and mounted files; only trusted users should access this Studio.
 
 ## Seqera MCP
 
@@ -94,7 +94,7 @@ An image build or local test does not prove this live acceptance check passed.
 ```bash
 python3 -m unittest discover -s .seqera/test -v
 docker build --platform=linux/amd64 \
-  --build-arg CONNECT_CLIENT_VERSION=0.14 \
+  --build-arg CONNECT_CLIENT_VERSION=0.15 \
   -t opencode-studio .seqera
 python3 .seqera/test/smoke.py opencode-studio
 ```
