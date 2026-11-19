@@ -17,7 +17,7 @@
 # ---------------------------------------------------------------
 # Test Build
 # renovate: datasource=docker depName=public.cr.seqera.io/platform/connect-client
-ARG CONNECT_CLIENT_VERSION=0.12
+ARG CONNECT_CLIENT_VERSION=0.15
 FROM public.cr.seqera.io/platform/connect-client:${CONNECT_CLIENT_VERSION} AS connect
 
 # Choose a python version that you know works with your application
