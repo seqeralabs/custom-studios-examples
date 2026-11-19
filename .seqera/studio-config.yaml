@@ -4,3 +4,5 @@ session:
   template:
     kind: "dockerfile"
     dockerfile: "Dockerfile"
+  clone:
+    enabled: false
