@@ -45,6 +45,13 @@ RUN apt-get update && apt-get install -y \
 # renovate: datasource=pypi depName=cellxgene
 RUN pip install cellxgene==1.3.0
 
+# Demo dataset, used when the dataset DATASET_FILE points to is not found (e.g. no data mounted).
+# pbmc3k.h5ad from the cellxgene project's example data, pinned to the 1.3.0 tag and a checksum.
+RUN mkdir -p /opt/cellxgene-demo && \
+    wget -nv -O /opt/cellxgene-demo/pbmc3k.h5ad \
+      https://raw.githubusercontent.com/chanzuckerberg/cellxgene/1.3.0/example-dataset/pbmc3k.h5ad && \
+    echo "0db367b991dd95809732b218539ede489bea99113807f62ebd7ccc970025fe38  /opt/cellxgene-demo/pbmc3k.h5ad" | sha256sum -c -
+
 # Define CellxGene dataset path and title with defaults
 ENV DATASET_FILE=s3://cellxgene_datasets/pbmc3k.h5ad
 ENV DATASET_TITLE="PBMCs 3k test dataset"
@@ -92,7 +99,27 @@ DATASET_LOCAL=$(convert_path \"${DATASET_FILE}\")\n\
 USERDATA_LOCAL=$(convert_path \"${USER_DATA_DIR}\")\n\
 ANNOTATIONS_LOCAL=$(convert_path \"${ANNOTATIONS_DIR}\")\n\
 \n\
-mkdir -p \"${USERDATA_LOCAL}\" \"${ANNOTATIONS_LOCAL}\"\n\
+# With no dataset at that path (e.g. no data mounted), start on the demo dataset in the image\n\
+if [[ \"${DATASET_LOCAL}\" != *://* && ! -e \"${DATASET_LOCAL}\" ]]; then\n\
+  echo \"[cellxgene-studio] Dataset not found: ${DATASET_LOCAL} (DATASET_FILE=${DATASET_FILE}).\"\n\
+  echo \"[cellxgene-studio] Starting on the demo dataset /opt/cellxgene-demo/pbmc3k.h5ad instead.\"\n\
+  echo \"[cellxgene-studio] To open your own data, mount the data-link that holds it (Mount data) and set the environment variable DATASET_FILE to the .h5ad file: /workspace/data/<data-link name>/<path>, or s3://<bucket>/<path> (also gs://, az://), which is read from /workspace/data/<bucket>/<path>.\"\n\
+  DATASET_LOCAL=/opt/cellxgene-demo/pbmc3k.h5ad\n\
+  DATASET_TITLE=\"PBMC 3k demo dataset\"\n\
+fi\n\
+\n\
+# A directory that cannot be created (e.g. its data-link is not mounted) falls back to the one in the image\n\
+ensure_dir() {\n\
+  if mkdir -p \"$2\"; then\n\
+    echo \"$2\"\n\
+  else\n\
+    echo \"[cellxgene-studio] $1: cannot create $2 (is its data-link mounted?). Using /user-data/cellxgene inside the Studio instead.\" >&2\n\
+    echo \"/user-data/cellxgene\"\n\
+  fi\n\
+}\n\
+\n\
+USERDATA_LOCAL=$(ensure_dir USER_DATA_DIR \"${USERDATA_LOCAL}\")\n\
+ANNOTATIONS_LOCAL=$(ensure_dir ANNOTATIONS_DIR \"${ANNOTATIONS_LOCAL}\")\n\
 \n\
 /usr/local/bin/cellxgene launch --host 0.0.0.0 --port ${CONNECT_TOOL_PORT} \\\n\
   --user-generated-data-dir \"${USERDATA_LOCAL}\" \\\n\
