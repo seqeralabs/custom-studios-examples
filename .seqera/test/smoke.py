@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Verify a real image's web/API, MCP config and fresh-container recovery."""
+"""Verify a real image's web/API, MCP config, fresh-container recovery and
+unconfigured start."""
 
 import base64
 import http.client
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -19,9 +21,27 @@ identity = "opencode-smoke-" + uuid.uuid4().hex[:12]
 volume = identity + "-data"
 password = secrets.token_urlsafe(32)
 environment = {**os.environ, "OPENCODE_SERVER_PASSWORD": password}
-authorization = "Basic " + base64.b64encode(f"opencode:{password}".encode()).decode()
 work = "/local-data/opencode/work"
 containers = []
+configured = (
+    "--mount",
+    f"source={volume},target=/local-data",
+    "-e",
+    "OPENCODE_SERVER_PASSWORD",
+    "-e",
+    "OPENCODE_LOCAL_STORAGE=1",
+    "-e",
+    "OPENCODE_DATA_LINK=/local-data",
+    "-e",
+    "OPENCODE_BACKUP_INTERVAL=5",
+)
+
+
+def basic(secret):
+    return "Basic " + base64.b64encode(f"opencode:{secret}".encode()).decode()
+
+
+authorization = basic(password)
 
 
 def docker(*args):
@@ -30,7 +50,7 @@ def docker(*args):
     ).strip()
 
 
-def start(suffix):
+def start(suffix, settings=configured, probe=lambda base: request(base, "/api/info")):
     name = identity + suffix
     docker(
         "run",
@@ -42,16 +62,7 @@ def start(suffix):
         "127.0.0.1::3000",
         "--stop-timeout",
         "60",
-        "--mount",
-        f"source={volume},target=/local-data",
-        "-e",
-        "OPENCODE_SERVER_PASSWORD",
-        "-e",
-        "OPENCODE_LOCAL_STORAGE=1",
-        "-e",
-        "OPENCODE_DATA_LINK=/local-data",
-        "-e",
-        "OPENCODE_BACKUP_INTERVAL=5",
+        *settings,
         "--entrypoint",
         "python3",
         image,
@@ -63,7 +74,7 @@ def start(suffix):
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
         try:
-            request(base, "/api/info")
+            probe(base)
             return name, base
         except (urllib.error.URLError, http.client.HTTPException, OSError):
             time.sleep(0.5)
@@ -71,7 +82,8 @@ def start(suffix):
 
 
 def request(base, path, body=None, auth=True, decode=True):
-    headers = {"Authorization": authorization} if auth else {}
+    """Pass auth=True for the test password, or an Authorization value."""
+    headers = {"Authorization": authorization if auth is True else auth} if auth else {}
     data = None
     if body is not None:
         data = json.dumps(body).encode()
@@ -136,6 +148,26 @@ try:
     assert restored["data"]["title"] == "OpenCode restart proof"
     marker = docker("exec", second, "cat", work + "/demo.txt")
     assert marker == "hello from OpenCode"
+    # Nothing configured: it must start by itself and say which defaults it took.
+    unset, unset_base = start(
+        "-unset", (), lambda base: request(base, "/", auth=False, decode=False)
+    )
+    logs = docker("logs", unset)
+    deadline = time.monotonic() + 10
+    while "server password " not in logs and time.monotonic() < deadline:
+        time.sleep(0.5)
+        logs = docker("logs", unset)
+    assert "OPENCODE_SERVER_PASSWORD is not set" in logs, "No password notice"
+    assert "OPENCODE_DATA_LINK is not set" in logs, "No storage notice"
+    generated = re.search(r"^server password (\S+)$", logs, re.MULTILINE)
+    assert generated, "OpenCode did not print a generated password"
+    try:
+        request(unset_base, "/api/info", auth=False)
+        raise AssertionError("Unauthenticated API access was accepted")
+    except urllib.error.HTTPError as error:
+        assert error.code == 401, error.code
+    request(unset_base, "/api/info", auth=basic(generated.group(1)))
+    assert docker("inspect", "--format", "{{.State.Running}}", unset) == "true"
     report = {
         "web_html": "passed",
         "api_auth": "passed",
@@ -143,6 +175,7 @@ try:
         "seqera_mcp_status": status,
         "session_restored": True,
         "work_file_restored": True,
+        "unconfigured_start": "passed",
         "real_model_turn": "not run",
         "live_fusion": "not tested",
     }

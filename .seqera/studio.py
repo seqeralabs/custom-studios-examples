@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Run OpenCode with local SQLite and consistent backups on a data link."""
+"""Run OpenCode with local SQLite and consistent backups on a data link.
+
+Without a data link, everything stays on the Studio's own filesystem.
+"""
 
 import fcntl
 import hashlib
@@ -16,16 +19,21 @@ import tempfile
 import time
 
 
+# Used when OPENCODE_DATA_LINK is unset. It is on the Studio's own filesystem,
+# so only Studio checkpoints keep it.
+LOCAL_STORAGE = Path("/var/lib/opencode-studio/local")
+
+
 def storage_root(env):
     raw = env.get("OPENCODE_DATA_LINK", "")
+    local = env.get("OPENCODE_LOCAL_STORAGE") == "1"
     if not raw:
-        raise ValueError(
-            "Set OPENCODE_DATA_LINK to an existing writable data-link mount"
-        )
+        LOCAL_STORAGE.mkdir(mode=0o700, parents=True, exist_ok=True)
+        raw, local = str(LOCAL_STORAGE), True
     mount = Path(raw).resolve(strict=True)
     if not mount.is_dir():
         raise ValueError("OPENCODE_DATA_LINK must be a directory")
-    if env.get("OPENCODE_LOCAL_STORAGE") != "1":
+    if not local:
         if not mount.is_relative_to("/workspace/data"):
             raise ValueError("OPENCODE_DATA_LINK must be beneath /workspace/data")
         fs = subprocess.check_output(
@@ -125,16 +133,42 @@ def prepare(env, root, runtime):
     return database, snapshot, work
 
 
+def default_notices(env, root):
+    """Say which defaults apply to unset inputs, and what each one costs."""
+    notices = []
+    # OpenCode has no mode without a login: it reads either variable, and
+    # otherwise generates a password and prints it.
+    if not (env.get("OPENCODE_SERVER_PASSWORD") or env.get("OPENCODE_PASSWORD")):
+        notices.append(
+            "OPENCODE_SERVER_PASSWORD is not set. OpenCode generates a login "
+            "password for this start and prints it below as 'server password "
+            "<password>'. Enter it when OpenCode asks for a password. It "
+            "changes on every start, and anyone who can read these logs can "
+            "read it. Set OPENCODE_SERVER_PASSWORD for a fixed password that "
+            "stays out of the logs."
+        )
+    if not env.get("OPENCODE_DATA_LINK"):
+        notices.append(
+            "OPENCODE_DATA_LINK is not set. Work files, config and database "
+            f"backups are kept in {root} inside this Studio. Only Studio "
+            "checkpoints keep them: they return when this Studio is stopped "
+            "and started, a new Studio starts empty, and nothing is written "
+            "to cloud storage. Set OPENCODE_DATA_LINK to a writable data-link "
+            "mount to keep them there."
+        )
+    return notices
+
+
 def main():
     os.umask(0o077)
     env = os.environ.copy()
-    if not env.get("OPENCODE_SERVER_PASSWORD"):
-        raise ValueError("Set OPENCODE_SERVER_PASSWORD for the OpenCode web login")
     port = int(env.get("CONNECT_TOOL_PORT", "3000"))
     interval = int(env.get("OPENCODE_BACKUP_INTERVAL", "60"))
     if not 1 <= port <= 65535 or interval < 5:
         raise ValueError("Use a valid port and a backup interval of at least 5 seconds")
     root = storage_root(env)
+    for notice in default_notices(env, root):
+        print(notice, flush=True)
     identity = hashlib.sha256(str(root).encode()).hexdigest()[:16]
     runtime = Path("/var/lib/opencode-studio") / f"{root.name}-{identity}"
     runtime.mkdir(mode=0o700, parents=True, exist_ok=True)

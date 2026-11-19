@@ -4,6 +4,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location(
     "studio", Path(__file__).parents[1] / "studio.py"
@@ -80,10 +81,10 @@ class StudioTests(unittest.TestCase):
             self.assertNotIn("test-secret", env["OPENCODE_CONFIG_CONTENT"])
             self.assertEqual(config.read_text(), original)
 
-    def test_rejects_missing_mount_and_unsafe_instance(self):
-        with self.assertRaises(ValueError):
-            studio.storage_root({})
+    def test_rejects_invalid_data_link_and_unsafe_instance(self):
         with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(FileNotFoundError):
+                studio.storage_root({"OPENCODE_DATA_LINK": tmp + "/missing"})
             with self.assertRaises(ValueError):
                 studio.storage_root({"OPENCODE_DATA_LINK": tmp})
             with self.assertRaises(ValueError):
@@ -94,6 +95,30 @@ class StudioTests(unittest.TestCase):
                         "OPENCODE_INSTANCE": "../escape",
                     }
                 )
+
+    def test_unset_data_link_uses_storage_inside_the_studio(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp).resolve() / "local"
+            with mock.patch.object(studio, "LOCAL_STORAGE", local):
+                for env in ({}, {"OPENCODE_DATA_LINK": ""}):
+                    self.assertEqual(studio.storage_root(env), local / "opencode")
+                self.assertTrue((local / "opencode").is_dir())
+                with self.assertRaises(ValueError):
+                    studio.storage_root({"OPENCODE_INSTANCE": "../escape"})
+
+    def test_notices_explain_each_default_only_when_its_input_is_unset(self):
+        root = Path("/somewhere/opencode")
+        password, storage = studio.default_notices({}, root)
+        self.assertIn("OPENCODE_SERVER_PASSWORD is not set", password)
+        self.assertIn("server password", password)
+        self.assertIn("OPENCODE_DATA_LINK is not set", storage)
+        self.assertIn(str(root), storage)
+        self.assertIn("checkpoints", storage)
+        configured = {
+            "OPENCODE_SERVER_PASSWORD": "secret",
+            "OPENCODE_DATA_LINK": "/workspace/data/agent-state",
+        }
+        self.assertEqual(studio.default_notices(configured, root), [])
 
     def test_existing_local_database_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,6 +1,6 @@
 # OpenCode Studio Environment
 
-Run [OpenCode v2](https://opencode.ai/v2/docs/) in Seqera Studios with its built-in web UI and [Seqera MCP](https://docs.seqera.io/platform-cloud/seqera-mcp/overview). Project files live on a writable Fusion data link. The SQLite session database runs locally and is backed up to the data link using SQLite's online backup API.
+Run [OpenCode v2](https://opencode.ai/v2/docs/) in Seqera Studios with its built-in web UI and [Seqera MCP](https://docs.seqera.io/platform-cloud/seqera-mcp/overview). Project files live on a writable Fusion data link, or inside the Studio when none is set. The SQLite session database runs locally and is backed up beside them using SQLite's online backup API.
 
 > Each branch of [custom-studios-examples](https://github.com/seqeralabs/custom-studios-examples) contains a separate custom Studio. See `master` for the available examples.
 
@@ -15,15 +15,22 @@ Run [OpenCode v2](https://opencode.ai/v2/docs/) in Seqera Studios with its built
 7. Keep the Studio **private**, then select **Add → Start**. Open the Studio and log into OpenCode with username **`opencode`** and your server password.
 8. In the web UI, choose **Projects → Add project**, select `/workspace/data/agent-state/opencode/work`, then create a session in that project.
 
-Data links must be selected in Platform; `studio-config.yaml` cannot declare them. Startup refuses missing, unwritable or ordinary local paths unless local test mode is explicitly enabled.
+Data links must be selected in Platform; `studio-config.yaml` cannot declare them. When `OPENCODE_DATA_LINK` is set, startup refuses missing, unwritable or ordinary local paths unless local test mode is explicitly enabled.
+
+### Starting without a data link or a password
+
+Steps 4 to 6 are optional. The Studio also starts with nothing set, for example from a Studio template, and its startup log says which defaults it took.
+
+- **No `OPENCODE_SERVER_PASSWORD`.** OpenCode has no mode without a login. It generates a password on every start and prints it in the Studio logs as `server password <password>`. Copy it from the logs into OpenCode's **Password** field and select **Connect**. You give up a fixed password of your own that stays out of the logs: the generated one changes on every start, and anyone who can read the Studio's logs can read it. Seqera Platform still decides who can open the Studio, so keep it **private**.
+- **No `OPENCODE_DATA_LINK`.** Work files, config and database backups are kept in `/var/lib/opencode-studio/local/<instance>/` inside the Studio, in the layout shown under [Persistence](#persistence). You give up storage that outlives the Studio: only [Studio checkpoints](https://docs.seqera.io/platform-cloud/studios/managing) keep these files. Stopping and starting the same Studio brings them back as of its latest checkpoint, which Platform updates every five minutes and on stop, so an abrupt end can lose the newest changes. A new Studio starts empty, and nothing is written to cloud storage or shown in Data Explorer.
 
 ## Configuration
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OPENCODE_DATA_LINK` | Required | Existing writable data-link path beneath `/workspace/data` |
+| `OPENCODE_DATA_LINK` | Unset: storage inside the Studio | Existing writable data-link path beneath `/workspace/data` |
 | `OPENCODE_INSTANCE` | `opencode` | Separate directory for each independent Studio |
-| `OPENCODE_SERVER_PASSWORD` | Required | OpenCode web/API password |
+| `OPENCODE_SERVER_PASSWORD` | Unset: generated on each start and printed in the logs | OpenCode web/API password |
 | `SEQERA_ACCESS_TOKEN` | Unset | Seqera MCP bearer token; otherwise OpenCode uses OAuth |
 | `OPENCODE_MODEL` | OpenCode default | Provider/model ID; overrides the persisted model at launch |
 | `OPENAI_API_KEY` | Unset | OpenAI model access |
@@ -99,7 +106,7 @@ docker build --platform=linux/amd64 \
 python3 .seqera/test/smoke.py opencode-studio
 ```
 
-The unit tests cover WAL backup/restoration, failed-backup preservation, local database recovery, mount validation and user-config preservation. The container smoke test checks web HTML, API authentication, Seqera MCP registration, password-free logs, and session/file recovery in a fresh container. It uses a generated test password and makes no model requests. Seqera MCP authorization and live Fusion storage still require the Studio acceptance check above.
+The unit tests cover WAL backup/restoration, failed-backup preservation, local database recovery, mount validation, the defaults for unset inputs and user-config preservation. The container smoke test checks web HTML, API authentication, Seqera MCP registration, password-free logs, and session/file recovery in a fresh container. It then starts a container with nothing set and logs in with the password OpenCode generated. It uses a generated test password and makes no model requests. Seqera MCP authorization and live Fusion storage still require the Studio acceptance check above.
 
 Create a private environment file **outside this repository** containing `OPENCODE_SERVER_PASSWORD` and any provider keys. Start a local preview:
 
